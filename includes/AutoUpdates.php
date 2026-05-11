@@ -3,7 +3,6 @@
      * Automatic updates manager for Prof Designs Guardian
      *
      * @package ProfDesigns\Guardian
-     * @since   1.0.0
      */
 
     declare( strict_types=1 );
@@ -21,12 +20,7 @@
      */
     class AutoUpdates {
         /**
-         * Initializes automatic update filters.
-         *
-         * Hooks into WordPress update filters to enable automatic updates for:
-         * - Plugins
-         * - Themes
-         * - WordPress core
+         * Enable automatic updates
          *
          * @return void
          *

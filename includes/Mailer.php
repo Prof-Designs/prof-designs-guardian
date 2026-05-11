@@ -3,7 +3,6 @@
      * Email notification handler for Prof Designs Guardian
      *
      * @package ProfDesigns\Guardian
-     * @since   1.0.0
      */
 
     declare( strict_types=1 );
@@ -30,14 +29,10 @@
         private static $fallbackEmail = 'dev@prof-designs.lv';
 
         /**
-         * Sends an email notification with structured data.
+         * Send email notification
          *
-         * Priority order for recipient address:
-         * 1. PROFDESIGNS_GUARDIAN_EMAIL constant (if defined in wp-config.php)
-         * 2. Fallback email address
-         *
-         * @param string $subject Email subject line.
-         * @param array  $data    Associative array of data to include in email body.
+         * @param string $subject
+         * @param array  $data Key-value pairs for email body
          *
          * @return void
          *

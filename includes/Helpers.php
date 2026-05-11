@@ -3,7 +3,6 @@
      * Helper utilities for Prof Designs Guardian
      *
      * @package ProfDesigns\Guardian
-     * @since   1.0.0
      */
 
     declare( strict_types=1 );

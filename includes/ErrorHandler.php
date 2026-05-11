@@ -3,7 +3,6 @@
      * Fatal error handler for Prof Designs Guardian
      *
      * @package ProfDesigns\Guardian
-     * @since   1.0.0
      */
 
     declare( strict_types=1 );
@@ -21,10 +20,7 @@
      */
     class ErrorHandler {
         /**
-         * Initializes the error handler.
-         *
-         * Registers a shutdown function to catch fatal PHP errors that would
-         * otherwise go unreported.
+         * Register shutdown handler
          *
          * @return void
          *
@@ -35,16 +31,7 @@
         }
 
         /**
-         * Handles fatal PHP errors during shutdown.
-         *
-         * Captures the last error and sends an email notification if it's a fatal error.
-         * Uses alert throttling to prevent duplicate notifications for the same error.
-         *
-         * Fatal error types monitored:
-         * - E_ERROR: Fatal run-time errors
-         * - E_PARSE: Compile-time parse errors
-         * - E_CORE_ERROR: Fatal errors during PHP startup
-         * - E_COMPILE_ERROR: Fatal compile-time errors
+         * Handle fatal errors and send alerts
          *
          * @return void
          *
@@ -74,7 +61,6 @@
                 return;
             }
 
-            // TODO: replace with default WordPress mailer
             Mailer::send( 'Fatal PHP Error', [
                 'message' => $error['message'],
                 'file'    => $error['file'],

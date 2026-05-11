@@ -3,7 +3,6 @@
      * Website health monitoring for Prof Designs Guardian
      *
      * @package ProfDesigns\Guardian
-     * @since   1.0.0
      */
 
     declare( strict_types=1 );
@@ -22,10 +21,7 @@
      */
     class HealthCheck {
         /**
-         * Initializes the health check system.
-         *
-         * Sets up a recurring hourly cron event to monitor website health.
-         * Only schedules the event if it's not already scheduled.
+         * Schedule hourly health checks
          *
          * @return void
          *
@@ -40,13 +36,7 @@
         }
 
         /**
-         * Executes the health check routine.
-         *
-         * Makes an HTTP request to the site's home URL and checks for:
-         * - Connection errors (WP_Error)
-         * - Server errors (5xx status codes)
-         *
-         * Sends email notifications if issues are detected.
+         * Run health check and alert on errors
          *
          * @return void
          *
