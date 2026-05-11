@@ -1,0 +1,5 @@
+# Exclude development and IDE files from WordPress distribution
+/.gitattributes export-ignore
+/.gitignore export-ignore
+/.idea export-ignore
+/changelog.md export-ignore
