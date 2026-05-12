@@ -12,4 +12,11 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `Removed` for now removed features.
 
 ## 1.0.0 - 01.07.2026
-- Coming soon...
+- [x] `Added` Automatic updates for WordPress core, plugins, and themes
+- [x] `Added` Fatal PHP error monitoring with email notifications
+- [x] `Added` Website health checks
+- [x] `Added` File editor protection (disables theme/plugin editors)
+- [x] `Added` Upload security hardening (blocks PHP execution in uploads directory)
+- [x] `Added` Malicious file upload prevention
+- [x] `Added` Smart anti-flood email protection
+- [x] `Added` MU plugin support
