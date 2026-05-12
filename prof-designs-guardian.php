@@ -12,7 +12,6 @@
      * License URI: https://www.gnu.org/licenses/gpl-3.0.html
      *
      * Requires PHP: 7.4
-     * TODO: Update URI: https://prof-designs.com/guardian/update
      *
      * @package ProfDesigns\Guardian
      * @since   1.0.0
