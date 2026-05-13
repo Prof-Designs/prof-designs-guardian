@@ -12,34 +12,33 @@
     /**
      * Class Helpers
      *
-     * Provides utility methods for the Guardian plugin, including alert throttling
-     * and cooldown management using WordPress transients.
+     * Provides utility methods for the Guardian plugin
      *
      * @package ProfDesigns\Guardian
      * @since   1.0.0
      */
     class Helpers {
         /**
-         * Determines whether an alert should be sent based on cooldown period.
+         * Determines whether an alert should be sent based on cooldown period
          *
-         * Uses WordPress transients to implement a cooldown mechanism that prevents
-         * flooding administrators with duplicate alerts within a specified timeframe.
+         * @param string $key      Unique identifier for the alert type
+         * @param int    $cooldown Cooldown period in seconds. Default 3600 (1 hour)
          *
-         * @param string $key      Unique identifier for the alert type.
-         * @param int    $cooldown Cooldown period in seconds. Default 3600 (1 hour).
-         *
-         * @return bool True if alert should be sent, false if within cooldown period.
+         * @return bool True if alert should be sent, false if within cooldown period
          *
          * @since 1.0.0
          */
         public static function shouldSendAlert( string $key, int $cooldown = 3600 ): bool {
-            $transientKey = 'guardian_' . md5( $key );
+            $option_key = 'guardian_alert_' . md5( $key );
+            $last_sent  = get_option( $option_key );
 
-            if ( get_transient( $transientKey ) ) {
+            // Check if we're still in cooldown period
+            if ( $last_sent && ( time() - $last_sent ) < $cooldown ) {
                 return false;
             }
 
-            set_transient( $transientKey, true, $cooldown );
+            // Update last sent time
+            update_option( $option_key, time(), false );
 
             return true;
         }

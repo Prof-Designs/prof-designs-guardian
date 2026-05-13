@@ -12,8 +12,7 @@
     /**
      * Class ErrorHandler
      *
-     * Monitors and reports fatal PHP errors with intelligent alert throttling
-     * to prevent notification flooding.
+     * Monitors and reports fatal PHP errors
      *
      * @package ProfDesigns\Guardian
      * @since   1.0.0
@@ -55,7 +54,8 @@
                 return;
             }
 
-            $hash = md5( $error['message'] );
+            // Include file and line in hash for better deduplication
+            $hash = md5( $error['message'] . $error['file'] . $error['line'] );
 
             if ( ! Helpers::shouldSendAlert( $hash, 3600 ) ) {
                 return;
