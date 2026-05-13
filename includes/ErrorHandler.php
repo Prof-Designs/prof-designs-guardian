@@ -54,13 +54,18 @@
                 return;
             }
 
+            error_log( sprintf( '[Guardian] FATAL ERROR detected: %s in %s:%d', $error['message'], $error['file'], $error['line'] ) );
+
             // Include file and line in hash for better deduplication
             $hash = md5( $error['message'] . $error['file'] . $error['line'] );
 
             if ( ! Helpers::shouldSendAlert( $hash, 3600 ) ) {
+                error_log( '[Guardian] Fatal error alert throttled (already sent within 1 hour)' );
+
                 return;
             }
 
+            error_log( '[Guardian] Sending fatal error alert email...' );
             Mailer::send( 'Fatal PHP Error', [
                 'message' => $error['message'],
                 'file'    => $error['file'],

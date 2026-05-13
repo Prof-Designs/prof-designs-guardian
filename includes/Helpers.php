@@ -34,11 +34,16 @@
 
             // Check if we're still in cooldown period
             if ( $last_sent && ( time() - $last_sent ) < $cooldown ) {
+                $minutes_ago      = round( ( time() - $last_sent ) / 60 );
+                $cooldown_minutes = round( $cooldown / 60 );
+                error_log( sprintf( '[Guardian] Alert throttled: Last sent %d min ago (cooldown: %d min)', $minutes_ago, $cooldown_minutes ) );
+
                 return false;
             }
 
             // Update last sent time
             update_option( $option_key, time(), false );
+            error_log( '[Guardian] Alert allowed: Cooldown expired or first alert' );
 
             return true;
         }
