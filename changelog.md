@@ -11,6 +11,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `Deprecated` for soon-to-be removed features.
 - `Removed` for now removed features.
 
+### Next tasks...
+- Remove Updates page - disallow access to it and remove the menu item
+
 ## 1.0.0 - 01.07.2026
 - [x] `Added` Automatic updates for WordPress core, plugins, and themes
 - [x] `Added` Fatal PHP error monitoring with email notifications

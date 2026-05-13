@@ -149,16 +149,14 @@
          * @since 1.0.1
          */
         public static function maybe_protect_uploads_directory(): void {
-            $last_check  = get_option( 'prof_guardian_uploads_setup' );
-            $hours_since = $last_check ? round( ( time() - $last_check ) / 3600, 1 ) : 'never';
+            $last_check = get_option( 'prof_guardian_uploads_setup' );
 
             // Skip if checked within the last 24 hours
             if ( $last_check && ( time() - $last_check ) < DAY_IN_SECONDS ) {
-                error_log( sprintf( '[Guardian] Upload protection: Skipping check (last checked %s hours ago)', $hours_since ) );
-
                 return;
             }
 
+            $hours_since = $last_check ? round( ( time() - $last_check ) / 3600, 1 ) : 'never';
             error_log( sprintf( '[Guardian] Upload protection: Running check (last checked: %s)', $last_check ? $hours_since
                                                                                                                 . ' hours ago' : 'never' ) );
 
@@ -167,6 +165,8 @@
 
             // Update last check time
             update_option( 'prof_guardian_uploads_setup', time(), false );
+
+            error_log( '[Guardian] Upload protection: Check complete' );
         }
 
         /**
