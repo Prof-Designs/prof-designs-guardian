@@ -3,7 +3,7 @@
      * Plugin Name: Prof Designs Guardian
      * Plugin URI: https://prof-designs.com/guardian
      * Description: A  plugin that provides automatic updates, error handling, and health checks for your website.
-     * Version: 0.3.2
+     * Version: 0.4.1
      *
      * Author: Prof Designs
      * Author URI: https://profdesigns.com
@@ -25,13 +25,14 @@
 
     require_once __DIR__ . '/includes/Helpers.php';
     require_once __DIR__ . '/includes/Mailer.php';
+
     require_once __DIR__ . '/includes/Security.php';
     require_once __DIR__ . '/includes/AutoUpdates.php';
     require_once __DIR__ . '/includes/ErrorHandler.php';
     require_once __DIR__ . '/includes/HealthCheck.php';
 
     /**
-     * One-time setup for MU plugin (runs on first load)
+     * One-time setup for MU plugin (runs on first load only)
      *
      * @since 1.0.0
      */
@@ -43,7 +44,7 @@
 
         error_log( '[Guardian] === INITIAL SETUP STARTING ===' );
 
-        // Run one-time setup
+        // Run one-time security setup
         error_log( '[Guardian] Setting up security capabilities...' );
         ProfDesigns\Guardian\Security::remove_editor_capabilities();
 
@@ -60,10 +61,16 @@
         // Mark setup as complete
         update_option( 'prof_guardian_setup_done', true, false );
 
+        // Send test email with Site Health summary
+        ProfDesigns\Guardian\Mailer::send_test_email();
+
         error_log( '[Guardian] === INITIAL SETUP COMPLETE ===' );
     }
 
-    add_action( 'init', 'prof_designs_guardian_setup' );
+    // Run setup only on admin pages to avoid frontend overhead
+    if ( is_admin() ) {
+        add_action( 'admin_init', 'prof_designs_guardian_setup', 5 );
+    }
 
     // Initialize plugin components
     ProfDesigns\Guardian\Security::init();

@@ -68,32 +68,6 @@ To ensure Guardian is always active and cannot be accidentally deactivated, inst
 
 ### Steps:
 1. Upload the `prof-designs-guardian` folder to `wp-content/mu-plugins/`
-2. Create a file `wp-content/mu-plugins/prof-designs-guardian-loader.php` with the content below
+2. Upload the `prof-designs-guardian-loader.php` file to `wp-content/mu-plugins/`
 
-### MU Plugin Loader
-Copy this code to create the MU plugin loader:
-
-```php
-<?php
-/**
- * Plugin Name: Prof Designs Guardian (MU Loader)
- * Description: Must-Use plugin loader for Prof Designs Guardian
- * Version: 1.0.0
- * Author: Prof Designs
- */
-
-// Prevent direct access
-if ( ! defined( 'ABSPATH' ) ) {
-    exit;
-}
-
-// Path to the main plugin file in mu-plugins subdirectory
-$guardian_plugin = WPMU_PLUGIN_DIR . '/prof-designs-guardian/prof-designs-guardian.php';
-
-// Load the plugin if it exists
-if ( file_exists( $guardian_plugin ) ) {
-    require_once $guardian_plugin;
-}
-```
-
-This ensures Guardian loads automatically on every request without needing manual activation.
+The loader file is included in the plugin package for convenience.

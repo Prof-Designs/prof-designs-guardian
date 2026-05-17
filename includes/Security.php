@@ -33,17 +33,94 @@
                 define( 'DISALLOW_FILE_EDIT', true );
             }
 
-            // Only check capabilities when settings might have changed
-            add_action( 'admin_init', [ __CLASS__, 'maybe_update_capabilities' ], 5 );
+            // Only run admin-specific hooks in admin context
+            if ( is_admin() ) {
+                // Only check capabilities when settings might have changed
+                add_action( 'admin_init', [ __CLASS__, 'maybe_update_capabilities' ], 5 );
 
-            // Remove editor menu items
-            add_action( 'admin_menu', [ __CLASS__, 'remove_editor_menus' ], 999 );
+                // Remove editor menu items
+                add_action( 'admin_menu', [ __CLASS__, 'remove_editor_menus' ], 999 );
 
-            // Only check uploads protection once per day instead of every page load
-            add_action( 'init', [ __CLASS__, 'maybe_protect_uploads_directory' ], 5 );
+                // Only check uploads protection once per day
+                add_action( 'admin_init', [ __CLASS__, 'maybe_protect_uploads_directory' ], 5 );
 
-            // Filter suspicious file uploads
+                // Block manual update attempts when lock is enabled
+                add_filter( 'user_has_cap', [ __CLASS__, 'filter_manual_update_caps' ], 10, 4 );
+            }
+
+            // File upload filtering applies everywhere
             add_filter( 'wp_handle_upload_prefilter', [ __CLASS__, 'block_suspicious_uploads' ] );
+        }
+
+        /**
+         * Filter manual update capabilities in admin context
+         *
+         * Allows viewing update pages but blocks actual update actions
+         * when LOCK_MODS is enabled
+         *
+         * @param array    $allcaps All capabilities
+         * @param array    $caps    Required capabilities
+         * @param array    $args    Additional arguments
+         * @param \WP_User $user    User object
+         *
+         * @return array Modified capabilities
+         *
+         * @since 1.0.1
+         */
+        /**
+         * Filter manual update capabilities in admin context
+         *
+         * Allows viewing update pages but blocks actual update actions
+         * when LOCK_MODS is enabled
+         *
+         * @param array    $allcaps All capabilities
+         * @param array    $caps    Required capabilities
+         * @param array    $args    Additional arguments
+         * @param \WP_User $user    User object
+         *
+         * @return array Modified capabilities
+         *
+         * @since 1.0.1
+         */
+        public static function filter_manual_update_caps( array $allcaps, array $caps, array $args, $user ): array {
+            $lock_modifications = defined( 'PROFDESIGNS_GUARDIAN_LOCK_MODS' ) ? PROFDESIGNS_GUARDIAN_LOCK_MODS : true;
+
+            if ( ! $lock_modifications ) {
+                return $allcaps;
+            }
+
+            global $pagenow;
+
+            // Block access to update-core.php page entirely when locked
+            if ( $pagenow === 'update-core.php' ) {
+                $allcaps['update_core']    = false;
+                $allcaps['update_plugins'] = false;
+                $allcaps['update_themes']  = false;
+
+                return $allcaps;
+            }
+
+            // Block manual update/delete actions on plugins/themes pages
+            if ( isset( $_REQUEST['action'] ) ) {
+                $blocked_actions = [
+                    'update-plugin',
+                    'update-selected',
+                    'delete-selected',
+                    'update-theme',
+                    'do-plugin-upgrade',
+                    'do-theme-upgrade',
+                ];
+
+                if ( in_array( $_REQUEST['action'], $blocked_actions, true ) ) {
+                    // Temporarily remove update capabilities for this request
+                    $allcaps['update_plugins'] = false;
+                    $allcaps['update_themes']  = false;
+                    $allcaps['delete_plugins'] = false;
+                    $allcaps['delete_themes']  = false;
+                }
+            }
+
+            return $allcaps;
         }
 
         /**
@@ -98,15 +175,15 @@
                 $role->remove_cap( 'edit_files' );
 
                 // Handle installation/modification capabilities
+                // Note: We keep update_* capabilities so admins can VIEW update pages
+                // Auto-updates still work via WP_Cron regardless of these caps
                 $mod_caps = [
                     'install_plugins',
                     'upload_plugins',
                     'delete_plugins',
-                    'update_plugins',
                     'install_themes',
                     'upload_themes',
                     'delete_themes',
-                    'update_themes',
                 ];
 
                 foreach ( $mod_caps as $cap ) {
@@ -135,8 +212,16 @@
          * @since 1.0.0
          */
         public static function remove_editor_menus(): void {
+            // Always remove file editors
             remove_submenu_page( 'themes.php', 'theme-editor.php' );
             remove_submenu_page( 'plugins.php', 'plugin-editor.php' );
+
+            // Remove Updates menu when modifications are locked
+            $lock_modifications = defined( 'PROFDESIGNS_GUARDIAN_LOCK_MODS' ) ? PROFDESIGNS_GUARDIAN_LOCK_MODS : true;
+
+            if ( $lock_modifications ) {
+                remove_submenu_page( 'index.php', 'update-core.php' );
+            }
         }
 
         /**
