@@ -197,6 +197,11 @@
          * @since 1.0.1
          */
         public static function filter_manual_update_caps( array $allcaps, array $caps, array $args, $user ): array {
+            static $call_count = 0;
+            static $slow_calls = 0;
+            $call_count++;
+            $timer_start = microtime( true );
+
             // Cache lock state for 1 hour to avoid repeated constant checks
             $lock_modifications = get_transient( 'prof_guardian_lock_state_cache' );
             if ( false === $lock_modifications ) {
@@ -233,7 +238,14 @@
             $allcaps['delete_plugins'] = false;
             $allcaps['delete_themes']  = false;
 
-            prof_guardian_log( sprintf( '[Guardian] Blocked manual update action: %s', $_REQUEST['action'] ) );
+            $exec_time = ( microtime( true ) - $timer_start ) * 1000;
+            prof_guardian_log( sprintf( '[Guardian] Blocked manual update action: %s (%.2fms)', $_REQUEST['action'], $exec_time ) );
+
+            // Track slow calls
+            if ( $exec_time > 10 ) {
+                $slow_calls++;
+                prof_guardian_log( sprintf( '[Guardian] filter_manual_update_caps: SLOW call #%d (%.2fms)', $slow_calls, $exec_time ) );
+            }
 
             return $allcaps;
         }
@@ -248,6 +260,8 @@
          * @since 1.0.1
          */
         public static function maybe_update_capabilities(): void {
+            $timer_start = microtime( true );
+
             // Prevent rapid repeated runs (race condition protection)
             if ( get_transient( 'prof_guardian_caps_updating' ) ) {
                 return;
@@ -265,10 +279,13 @@
                 // Set a temporary lock to prevent concurrent runs
                 set_transient( 'prof_guardian_caps_updating', 1, 10 );
                 
-                error_log( sprintf( '[Guardian] Initial capability setup (lock=%s)', $lock_modifications ? 'true' : 'false' ) );
+                prof_guardian_log( sprintf( '[Guardian] Initial capability setup (lock=%s)', $lock_modifications ? 'true' : 'false' ) );
                 self::remove_editor_capabilities();
                 
                 delete_transient( 'prof_guardian_caps_updating' );
+                
+                $exec_time = ( microtime( true ) - $timer_start ) * 1000;
+                prof_guardian_log( sprintf( '[Guardian] Initial setup complete: %.2fms', $exec_time ) );
                 return;
             }
 
@@ -280,12 +297,15 @@
             // Set a temporary lock to prevent concurrent runs
             set_transient( 'prof_guardian_caps_updating', 1, 10 );
             
-            error_log( sprintf( '[Guardian] Lock state changed: %s -> %s', $stored_bool ? 'true' : 'false', $lock_modifications ? 'true' : 'false' ) );
+            prof_guardian_log( sprintf( '[Guardian] Lock state changed: %s -> %s', $stored_bool ? 'true' : 'false', $lock_modifications ? 'true' : 'false' ) );
 
             // Update capabilities
             self::remove_editor_capabilities();
             
             delete_transient( 'prof_guardian_caps_updating' );
+            
+            $exec_time = ( microtime( true ) - $timer_start ) * 1000;
+            prof_guardian_log( sprintf( '[Guardian] Capabilities updated: %.2fms', $exec_time ) );
         }
 
         /**
@@ -306,6 +326,7 @@
                 return;
             }
 
+            $roles_processed = 0;
             foreach ( $wp_roles->roles as $role_name => $role_info ) {
                 $role = get_role( $role_name );
 
@@ -339,6 +360,8 @@
                         }
                     }
                 }
+                
+                $roles_processed++;
             }
 
             // Store the lock state as integer (1 or 0)
@@ -346,14 +369,14 @@
             $updated = update_option( 'prof_guardian_lock_state', $new_state, false );
 
             if ( ! $updated ) {
-                error_log( '[Guardian] WARNING: Failed to update prof_guardian_lock_state option!' );
+                prof_guardian_log( '[Guardian] WARNING: Failed to update prof_guardian_lock_state option!' );
             }
 
             // Clear the cached lock state so next check picks up the change
             delete_transient( 'prof_guardian_lock_state_cache' );
 
             $exec_time = ( microtime( true ) - $timer_start ) * 1000;
-            error_log( sprintf( '[Guardian] Capabilities updated: %.2fms (new lock state: %d)', $exec_time, $new_state ) );
+            prof_guardian_log( sprintf( '[Guardian] Capabilities updated for %d roles: %.2fms (lock state: %d)', $roles_processed, $exec_time, $new_state ) );
         }
 
         /**
@@ -386,7 +409,7 @@
 
             $exec_time = ( microtime( true ) - $timer_start ) * 1000;
             if ( $exec_time > 5 ) {
-                error_log( sprintf( '[Guardian] remove_editor_menus: %.2fms', $exec_time ) );
+                prof_guardian_log( sprintf( '[Guardian] remove_editor_menus: %.2fms (slow)', $exec_time ) );
             }
         }
 
@@ -421,6 +444,7 @@
          * @since 1.0.1
          */
         public static function maybe_protect_uploads_directory(): void {
+            $timer_start = microtime( true );
             $last_check = get_option( 'prof_guardian_uploads_setup' );
 
             // Skip if checked within the last 24 hours
@@ -429,8 +453,7 @@
             }
 
             $hours_since = $last_check ? round( ( time() - $last_check ) / 3600, 1 ) : 'never';
-            error_log( sprintf( '[Guardian] Upload protection: Running check (last checked: %s)', $last_check ? $hours_since
-                                                                                                                . ' hours ago' : 'never' ) );
+            prof_guardian_log( sprintf( '[Guardian] Upload protection check starting (last checked: %s)', $last_check ? $hours_since . ' hours ago' : 'never' ) );
 
             // Check and protect uploads directory
             self::protect_uploads_directory();
@@ -438,7 +461,8 @@
             // Update last check time
             update_option( 'prof_guardian_uploads_setup', time(), false );
 
-            error_log( '[Guardian] Upload protection: Check complete' );
+            $exec_time = ( microtime( true ) - $timer_start ) * 1000;
+            prof_guardian_log( sprintf( '[Guardian] Upload protection check complete: %.2fms (next check in 24 hours)', $exec_time ) );
         }
 
         /**
