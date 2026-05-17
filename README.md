@@ -35,12 +35,47 @@ define('PROFDESIGNS_GUARDIAN_EMAIL', 'alerts@example.com');
 // Lock plugin/theme installation and deletion (defaults to true)
 // Set to false when you need to manually install/update/delete plugins or themes
 define('PROFDESIGNS_GUARDIAN_LOCK_MODS', false);
+
+// Enable/disable automatic updates (defaults to true)
+// Set to false to disable auto-updates while keeping security locks active
+define('PROFDESIGNS_GUARDIAN_UPDATES', false);
 ```
 
 **Security Protection Levels:**
 - **File editing** - Always blocked (theme/plugin editors disabled)
-- **Plugin/Theme modifications** - Blocked by default, can be temporarily disabled via `PROFDESIGNS_GUARDIAN_LOCK_MODS`
-- **Automatic updates** - Always allowed (runs via WP_Cron)
+- **Plugin/Theme modifications** - Blocked by default via `PROFDESIGNS_GUARDIAN_LOCK_MODS`
+- **Automatic updates** - Enabled by default via `PROFDESIGNS_GUARDIAN_UPDATES`
+
+**Configuration Scenarios:**
+
+1. **Maximum Security (Default)**
+   ```php
+   // No constants needed - both default to true
+   // - Auto-updates: ENABLED
+   // - Manual changes: BLOCKED
+   ```
+
+2. **Disable Auto-Updates, Keep Security**
+   ```php
+   define('PROFDESIGNS_GUARDIAN_UPDATES', false);
+   // - Auto-updates: DISABLED
+   // - Manual changes: BLOCKED (you'll need LOCK_MODS=false to update manually)
+   ```
+
+3. **Allow Manual Changes, Keep Auto-Updates**
+   ```php
+   define('PROFDESIGNS_GUARDIAN_LOCK_MODS', false);
+   // - Auto-updates: ENABLED
+   // - Manual changes: ALLOWED
+   ```
+
+4. **Disable Everything**
+   ```php
+   define('PROFDESIGNS_GUARDIAN_UPDATES', false);
+   define('PROFDESIGNS_GUARDIAN_LOCK_MODS', false);
+   // - Auto-updates: DISABLED
+   // - Manual changes: ALLOWED
+   ```
 
 When `PROFDESIGNS_GUARDIAN_LOCK_MODS` is `true` (default), no admin user can:
 - Install plugins from repository or upload .zip files

@@ -35,6 +35,9 @@
 
             // Only run admin-specific hooks in admin context
             if ( is_admin() ) {
+                // Handle Site Health redirect FIRST, before any output
+                add_action( 'admin_init', [ __CLASS__, 'handle_site_health_redirect' ], 0 );
+
                 // Only check capabilities when settings might have changed
                 add_action( 'admin_init', [ __CLASS__, 'maybe_update_capabilities' ], 5 );
 
@@ -50,12 +53,91 @@
                 // Only check uploads protection once per day
                 add_action( 'admin_init', [ __CLASS__, 'maybe_protect_uploads_directory' ], 5 );
 
-                // Block manual update attempts when lock is enabled
-                add_filter( 'user_has_cap', [ __CLASS__, 'filter_manual_update_caps' ], 10, 4 );
+                // Add capability filter on admin_init when we can properly detect the page
+                add_action( 'admin_init', [ __CLASS__, 'maybe_add_capability_filter' ], 0 );
             }
 
             // File upload filtering applies everywhere
             add_filter( 'wp_handle_upload_prefilter', [ __CLASS__, 'block_suspicious_uploads' ] );
+        }
+
+        /**
+         * Handle Site Health redirect early
+         *
+         * Redirects before any output to avoid header warnings
+         *
+         * @return void
+         *
+         * @since 1.0.1
+         */
+        public static function handle_site_health_redirect(): void {
+            if ( isset( $_GET['page'] ) && $_GET['page'] === 'prof-designs-site-health' ) {
+                prof_guardian_log( '[Guardian] Redirecting to Site Health...' );
+                wp_safe_redirect( admin_url( 'site-health.php' ) );
+                exit;
+            }
+        }
+
+        /**
+         * Conditionally add capability filter based on current page
+         *
+         * Only adds the filter if we're NOT on Site Health pages
+         *
+         * @return void
+         *
+         * @since 1.0.1
+         */
+        public static function maybe_add_capability_filter(): void {
+            global $pagenow;
+
+            // On Site Health pages, add filter to GRANT capabilities instead
+            if ( $pagenow === 'site-health.php' ) {
+                prof_guardian_log( '[Guardian] Granting capabilities for Site Health page' );
+                add_filter( 'user_has_cap', [ __CLASS__, 'grant_site_health_caps' ], 10, 1 );
+                return;
+            }
+
+            // Skip our Site Health redirect page (already handled by early redirect)
+            if ( isset( $_GET['page'] ) && $_GET['page'] === 'prof-designs-site-health' ) {
+                return;
+            }
+
+            // For Site Health AJAX, grant capabilities
+            if ( defined( 'DOING_AJAX' ) && DOING_AJAX && isset( $_REQUEST['action'] ) ) {
+                $health_actions = [ 'health-check', 'health-check-loopback', 'health-check-background-updates', 'health-check-files-integrity' ];
+                foreach ( $health_actions as $action ) {
+                    if ( strpos( $_REQUEST['action'], $action ) !== false ) {
+                        prof_guardian_log( sprintf( '[Guardian] Granting capabilities for Health check AJAX (%s)', $_REQUEST['action'] ) );
+                        add_filter( 'user_has_cap', [ __CLASS__, 'grant_site_health_caps' ], 10, 1 );
+                        return;
+                    }
+                }
+            }
+
+            // Safe to add the blocking filter now
+            add_filter( 'user_has_cap', [ __CLASS__, 'filter_manual_update_caps' ], 10, 4 );
+        }
+
+        /**
+         * Grant capabilities needed for Site Health checks
+         *
+         * Site Health needs these capabilities to run tests, even when
+         * modifications are locked
+         *
+         * @param array $allcaps All capabilities
+         *
+         * @return array Modified capabilities
+         *
+         * @since 1.0.1
+         */
+        public static function grant_site_health_caps( array $allcaps ): array {
+            // Grant capabilities needed for Site Health to function
+            $allcaps['install_plugins'] = true;
+            $allcaps['update_plugins']  = true;
+            $allcaps['update_themes']   = true;
+            $allcaps['update_core']     = true;
+            
+            return $allcaps;
         }
 
         /**
@@ -66,26 +148,34 @@
          * @since 1.0.1
          */
         public static function block_update_pages(): void {
-            $lock_modifications = defined( 'PROFDESIGNS_GUARDIAN_LOCK_MODS' ) ? PROFDESIGNS_GUARDIAN_LOCK_MODS : true;
+            $timer_start = microtime( true );
 
-            error_log( '[Guardian] block_update_pages called - Lock state: ' . ( $lock_modifications ? 'TRUE' : 'FALSE' ) );
+            // Cache lock state for 1 hour to avoid repeated constant checks
+            $lock_modifications = get_transient( 'prof_guardian_lock_state_cache' );
+            if ( false === $lock_modifications ) {
+                $lock_modifications = defined( 'PROFDESIGNS_GUARDIAN_LOCK_MODS' ) ? PROFDESIGNS_GUARDIAN_LOCK_MODS : true;
+                set_transient( 'prof_guardian_lock_state_cache', $lock_modifications, HOUR_IN_SECONDS );
+            }
 
             if ( ! $lock_modifications ) {
+                $exec_time = ( microtime( true ) - $timer_start ) * 1000;
+                error_log( sprintf( '[Guardian] block_update_pages: %.2fms (lock disabled)', $exec_time ) );
+
                 return;
             }
 
             global $pagenow;
 
-            error_log( '[Guardian] Current page: ' . $pagenow );
-
             // Block direct access to update-core.php
             if ( $pagenow === 'update-core.php' ) {
-                error_log( '[Guardian] Blocking access to update-core.php' );
-                wp_die(
-                    __( 'Manual updates are currently disabled. Automatic updates are still active.', 'prof-designs-guardian' ),
-                    __( 'Updates Locked', 'prof-designs-guardian' ),
-                    [ 'response' => 403 ]
-                );
+                $exec_time = ( microtime( true ) - $timer_start ) * 1000;
+                error_log( sprintf( '[Guardian] block_update_pages: %.2fms (blocked access)', $exec_time ) );
+                wp_die( __( 'Manual updates are currently disabled. Automatic updates are still active.', 'prof-designs-guardian' ), __( 'Updates Locked', 'prof-designs-guardian' ), [ 'response' => 403 ] );
+            }
+
+            $exec_time = ( microtime( true ) - $timer_start ) * 1000;
+            if ( $exec_time > 5 ) {
+                error_log( sprintf( '[Guardian] block_update_pages: %.2fms', $exec_time ) );
             }
         }
 
@@ -93,22 +183,9 @@
          * Filter manual update capabilities in admin context
          *
          * Allows viewing update pages but blocks actual update actions
-         * when LOCK_MODS is enabled
+         * when LOCK_MODS is enabled.
          *
-         * @param array    $allcaps All capabilities
-         * @param array    $caps    Required capabilities
-         * @param array    $args    Additional arguments
-         * @param \WP_User $user    User object
-         *
-         * @return array Modified capabilities
-         *
-         * @since 1.0.1
-         */
-        /**
-         * Filter manual update capabilities in admin context
-         *
-         * Allows viewing update pages but blocks actual update actions
-         * when LOCK_MODS is enabled
+         * Note: This filter is not added on Site Health pages to avoid interference.
          *
          * @param array    $allcaps All capabilities
          * @param array    $caps    Required capabilities
@@ -120,40 +197,43 @@
          * @since 1.0.1
          */
         public static function filter_manual_update_caps( array $allcaps, array $caps, array $args, $user ): array {
-            $lock_modifications = defined( 'PROFDESIGNS_GUARDIAN_LOCK_MODS' ) ? PROFDESIGNS_GUARDIAN_LOCK_MODS : true;
+            // Cache lock state for 1 hour to avoid repeated constant checks
+            $lock_modifications = get_transient( 'prof_guardian_lock_state_cache' );
+            if ( false === $lock_modifications ) {
+                $lock_modifications = defined( 'PROFDESIGNS_GUARDIAN_LOCK_MODS' ) ? PROFDESIGNS_GUARDIAN_LOCK_MODS : true;
+                set_transient( 'prof_guardian_lock_state_cache', $lock_modifications, HOUR_IN_SECONDS );
+            }
 
             if ( ! $lock_modifications ) {
                 return $allcaps;
             }
 
-            global $pagenow;
-
-            // Always allow Site Health access
-            if ( $pagenow === 'site-health.php' ) {
-                $allcaps['view_site_health_checks'] = true;
-                $allcaps['install_plugins'] = true;
+            // ONLY block when we're certain it's a manual update action
+            // Be very specific to avoid interfering with other operations
+            if ( ! isset( $_REQUEST['action'] ) ) {
                 return $allcaps;
             }
 
-            // Block manual update/delete actions on plugins/themes pages
-            if ( isset( $_REQUEST['action'] ) ) {
-                $blocked_actions = [
-                    'update-plugin',
-                    'update-selected',
-                    'delete-selected',
-                    'update-theme',
-                    'do-plugin-upgrade',
-                    'do-theme-upgrade',
-                ];
+            $blocked_actions = [
+                'update-plugin',
+                'update-selected',
+                'delete-selected',
+                'update-theme',
+                'do-plugin-upgrade',
+                'do-theme-upgrade',
+            ];
 
-                if ( in_array( $_REQUEST['action'], $blocked_actions, true ) ) {
-                    // Temporarily remove update capabilities for this request
-                    $allcaps['update_plugins'] = false;
-                    $allcaps['update_themes']  = false;
-                    $allcaps['delete_plugins'] = false;
-                    $allcaps['delete_themes']  = false;
-                }
+            if ( ! in_array( $_REQUEST['action'], $blocked_actions, true ) ) {
+                return $allcaps;
             }
+
+            // Only now do we modify capabilities
+            $allcaps['update_plugins'] = false;
+            $allcaps['update_themes']  = false;
+            $allcaps['delete_plugins'] = false;
+            $allcaps['delete_themes']  = false;
+
+            prof_guardian_log( sprintf( '[Guardian] Blocked manual update action: %s', $_REQUEST['action'] ) );
 
             return $allcaps;
         }
@@ -168,17 +248,44 @@
          * @since 1.0.1
          */
         public static function maybe_update_capabilities(): void {
-            $lock_modifications = defined( 'PROFDESIGNS_GUARDIAN_LOCK_MODS' ) ? PROFDESIGNS_GUARDIAN_LOCK_MODS : true;
-
-            $stored_lock_state = get_option( 'prof_guardian_lock_state' );
-
-            // Skip if nothing changed
-            if ( $stored_lock_state !== false && $stored_lock_state === (int) $lock_modifications ) {
+            // Prevent rapid repeated runs (race condition protection)
+            if ( get_transient( 'prof_guardian_caps_updating' ) ) {
                 return;
             }
 
+            $lock_modifications = defined( 'PROFDESIGNS_GUARDIAN_LOCK_MODS' ) ? PROFDESIGNS_GUARDIAN_LOCK_MODS : true;
+
+            $stored_lock_state = get_option( 'prof_guardian_lock_state' );
+            
+            // Convert stored value to boolean for comparison
+            $stored_bool = ( $stored_lock_state === '1' || $stored_lock_state === 1 || $stored_lock_state === true );
+            
+            // First run: option doesn't exist yet
+            if ( false === $stored_lock_state ) {
+                // Set a temporary lock to prevent concurrent runs
+                set_transient( 'prof_guardian_caps_updating', 1, 10 );
+                
+                error_log( sprintf( '[Guardian] Initial capability setup (lock=%s)', $lock_modifications ? 'true' : 'false' ) );
+                self::remove_editor_capabilities();
+                
+                delete_transient( 'prof_guardian_caps_updating' );
+                return;
+            }
+
+            // Skip if nothing changed
+            if ( $stored_bool === $lock_modifications ) {
+                return;
+            }
+
+            // Set a temporary lock to prevent concurrent runs
+            set_transient( 'prof_guardian_caps_updating', 1, 10 );
+            
+            error_log( sprintf( '[Guardian] Lock state changed: %s -> %s', $stored_bool ? 'true' : 'false', $lock_modifications ? 'true' : 'false' ) );
+
             // Update capabilities
             self::remove_editor_capabilities();
+            
+            delete_transient( 'prof_guardian_caps_updating' );
         }
 
         /**
@@ -189,6 +296,8 @@
          * @since 1.0.0
          */
         public static function remove_editor_capabilities(): void {
+            $timer_start = microtime( true );
+
             $lock_modifications = defined( 'PROFDESIGNS_GUARDIAN_LOCK_MODS' ) ? PROFDESIGNS_GUARDIAN_LOCK_MODS : true;
 
             $wp_roles = wp_roles();
@@ -232,8 +341,19 @@
                 }
             }
 
-            // Store the lock state
-            update_option( 'prof_guardian_lock_state', (int) $lock_modifications, false );
+            // Store the lock state as integer (1 or 0)
+            $new_state = $lock_modifications ? 1 : 0;
+            $updated = update_option( 'prof_guardian_lock_state', $new_state, false );
+
+            if ( ! $updated ) {
+                error_log( '[Guardian] WARNING: Failed to update prof_guardian_lock_state option!' );
+            }
+
+            // Clear the cached lock state so next check picks up the change
+            delete_transient( 'prof_guardian_lock_state_cache' );
+
+            $exec_time = ( microtime( true ) - $timer_start ) * 1000;
+            error_log( sprintf( '[Guardian] Capabilities updated: %.2fms (new lock state: %d)', $exec_time, $new_state ) );
         }
 
         /**
@@ -247,18 +367,26 @@
          * @since 1.0.0
          */
         public static function remove_editor_menus(): void {
+            $timer_start = microtime( true );
+
             // Always remove file editors
             remove_submenu_page( 'themes.php', 'theme-editor.php' );
             remove_submenu_page( 'plugins.php', 'plugin-editor.php' );
 
-            // Remove Updates menu when modifications are locked
-            $lock_modifications = defined( 'PROFDESIGNS_GUARDIAN_LOCK_MODS' ) ? PROFDESIGNS_GUARDIAN_LOCK_MODS : true;
-
-            error_log( '[Guardian] remove_editor_menus called - Lock state: ' . ( $lock_modifications ? 'TRUE' : 'FALSE' ) );
+            // Cache lock state for 1 hour to avoid repeated constant checks
+            $lock_modifications = get_transient( 'prof_guardian_lock_state_cache' );
+            if ( false === $lock_modifications ) {
+                $lock_modifications = defined( 'PROFDESIGNS_GUARDIAN_LOCK_MODS' ) ? PROFDESIGNS_GUARDIAN_LOCK_MODS : true;
+                set_transient( 'prof_guardian_lock_state_cache', $lock_modifications, HOUR_IN_SECONDS );
+            }
 
             if ( $lock_modifications ) {
-                error_log( '[Guardian] Removing Updates menu' );
                 remove_submenu_page( 'index.php', 'update-core.php' );
+            }
+
+            $exec_time = ( microtime( true ) - $timer_start ) * 1000;
+            if ( $exec_time > 5 ) {
+                error_log( sprintf( '[Guardian] remove_editor_menus: %.2fms', $exec_time ) );
             }
         }
 
@@ -266,6 +394,7 @@
          * Add Site Health link to Settings menu
          *
          * Provides easy access to Site Health even if dashboard widget is removed
+         * Redirect is handled early in admin_init to avoid output issues
          *
          * @return void
          *
@@ -278,10 +407,7 @@
                 __( 'Site Health', 'prof-designs-guardian' ),
                 'manage_options',
                 'prof-designs-site-health',
-                static function (): void {
-                    wp_safe_redirect( admin_url( 'site-health.php' ) );
-                    exit;
-                }
+                '__return_false' // Placeholder callback - redirect happens in admin_init
             );
         }
 

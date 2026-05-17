@@ -11,12 +11,19 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `Deprecated` for soon-to-be removed features.
 - `Removed` for now removed features.
 
+## TODO
+- [ ] Fix Site Health page showing "Sorry, you are not allowed to access this page" when PROFDESIGNS_GUARDIAN_LOCK_MODS is enabled
+
 ## 1.0.0 - 01.07.2026
 - [x] `Added` Automatic updates for WordPress core, plugins, and themes
 - [x] `Added` Fatal PHP error monitoring with email notifications
-- [x] `Added` Website health checks
-- [x] `Added` File editor protection (disables theme/plugin editors)
-- [x] `Added` Upload security hardening (blocks PHP execution in uploads directory)
+- [x] `Added` Website health checks with timeout protection
+- [x] `Added` File editor protection and security hardening
+- [x] `Added` Upload security with daily background verification
 - [x] `Added` Malicious file upload prevention
-- [x] `Added` Smart anti-flood email protection
+- [x] `Added` Optimized security capability checks for better performance
+- [x] `Added` Smart alert throttling and error deduplication
 - [x] `Added` MU plugin support
+- [x] `Added` PROFDESIGNS_GUARDIAN_UPDATES constant to control auto-updates independently
+- [x] `Added` Performance timing debug for all major hooks
+- [x] `Added` Transient caching for lock state checks (1-hour cache)

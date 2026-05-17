@@ -13,7 +13,7 @@
      * Class AutoUpdates
      *
      * Enables automatic updates for WordPress core, plugins, and themes.
-     * This ensures the site stays current with security patches and bug fixes.
+     * Can be disabled via PROFDESIGNS_GUARDIAN_UPDATES constant.
      *
      * @package ProfDesigns\Guardian
      * @since   1.0.0
@@ -27,6 +27,15 @@
          * @since 1.0.0
          */
         public static function init(): void {
+            // Check if auto-updates are enabled (defaults to true)
+            $updates_enabled = defined( 'PROFDESIGNS_GUARDIAN_UPDATES' ) ? PROFDESIGNS_GUARDIAN_UPDATES : true;
+
+            if ( ! $updates_enabled ) {
+                error_log( '[Guardian] Auto-updates disabled via PROFDESIGNS_GUARDIAN_UPDATES constant' );
+
+                return;
+            }
+
             // Enable automatic updates
             add_filter( 'auto_update_plugin', '__return_true' );
             add_filter( 'auto_update_theme', '__return_true' );

@@ -3,7 +3,7 @@
      * Plugin Name: Prof Designs Guardian
      * Plugin URI: https://prof-designs.com/guardian
      * Description: A  plugin that provides automatic updates, error handling, and health checks for your website.
-     * Version: 0.4.3.4
+     * Version: 0.5.8
      *
      * Author: Prof Designs
      * Author URI: https://profdesigns.com
@@ -21,6 +21,19 @@
 
     if ( ! defined( 'ABSPATH' ) ) {
         exit;
+    }
+
+    /**
+     * Safe error logging that won't cause output
+     *
+     * @param string $message Log message
+     *
+     * @return void
+     */
+    function prof_guardian_log( string $message ): void {
+        if ( defined( 'WP_DEBUG' ) && WP_DEBUG && defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
+            error_log( $message );
+        }
     }
 
     require_once __DIR__ . '/includes/Helpers.php';
@@ -77,3 +90,5 @@
     ProfDesigns\Guardian\AutoUpdates::init();
     ProfDesigns\Guardian\ErrorHandler::init();
     ProfDesigns\Guardian\HealthCheck::init();
+
+    prof_guardian_log( '[Guardian] All components initialized' );
