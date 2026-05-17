@@ -38,8 +38,14 @@
                 // Only check capabilities when settings might have changed
                 add_action( 'admin_init', [ __CLASS__, 'maybe_update_capabilities' ], 5 );
 
+                // Block access to update pages when locked
+                add_action( 'admin_init', [ __CLASS__, 'block_update_pages' ], 1 );
+
                 // Remove editor menu items
                 add_action( 'admin_menu', [ __CLASS__, 'remove_editor_menus' ], 999 );
+
+                // Add Site Health to Settings menu as fallback
+                add_action( 'admin_menu', [ __CLASS__, 'add_site_health_menu' ], 100 );
 
                 // Only check uploads protection once per day
                 add_action( 'admin_init', [ __CLASS__, 'maybe_protect_uploads_directory' ], 5 );
@@ -50,6 +56,37 @@
 
             // File upload filtering applies everywhere
             add_filter( 'wp_handle_upload_prefilter', [ __CLASS__, 'block_suspicious_uploads' ] );
+        }
+
+        /**
+         * Block direct access to update pages when modifications are locked
+         *
+         * @return void
+         *
+         * @since 1.0.1
+         */
+        public static function block_update_pages(): void {
+            $lock_modifications = defined( 'PROFDESIGNS_GUARDIAN_LOCK_MODS' ) ? PROFDESIGNS_GUARDIAN_LOCK_MODS : true;
+
+            error_log( '[Guardian] block_update_pages called - Lock state: ' . ( $lock_modifications ? 'TRUE' : 'FALSE' ) );
+
+            if ( ! $lock_modifications ) {
+                return;
+            }
+
+            global $pagenow;
+
+            error_log( '[Guardian] Current page: ' . $pagenow );
+
+            // Block direct access to update-core.php
+            if ( $pagenow === 'update-core.php' ) {
+                error_log( '[Guardian] Blocking access to update-core.php' );
+                wp_die(
+                    __( 'Manual updates are currently disabled. Automatic updates are still active.', 'prof-designs-guardian' ),
+                    __( 'Updates Locked', 'prof-designs-guardian' ),
+                    [ 'response' => 403 ]
+                );
+            }
         }
 
         /**
@@ -91,12 +128,10 @@
 
             global $pagenow;
 
-            // Block access to update-core.php page entirely when locked
-            if ( $pagenow === 'update-core.php' ) {
-                $allcaps['update_core']    = false;
-                $allcaps['update_plugins'] = false;
-                $allcaps['update_themes']  = false;
-
+            // Always allow Site Health access
+            if ( $pagenow === 'site-health.php' ) {
+                $allcaps['view_site_health_checks'] = true;
+                $allcaps['install_plugins'] = true;
                 return $allcaps;
             }
 
@@ -219,9 +254,35 @@
             // Remove Updates menu when modifications are locked
             $lock_modifications = defined( 'PROFDESIGNS_GUARDIAN_LOCK_MODS' ) ? PROFDESIGNS_GUARDIAN_LOCK_MODS : true;
 
+            error_log( '[Guardian] remove_editor_menus called - Lock state: ' . ( $lock_modifications ? 'TRUE' : 'FALSE' ) );
+
             if ( $lock_modifications ) {
+                error_log( '[Guardian] Removing Updates menu' );
                 remove_submenu_page( 'index.php', 'update-core.php' );
             }
+        }
+
+        /**
+         * Add Site Health link to Settings menu
+         *
+         * Provides easy access to Site Health even if dashboard widget is removed
+         *
+         * @return void
+         *
+         * @since 1.0.1
+         */
+        public static function add_site_health_menu(): void {
+            add_submenu_page(
+                'tools.php',
+                __( 'Site Health', 'prof-designs-guardian' ),
+                __( 'Site Health', 'prof-designs-guardian' ),
+                'manage_options',
+                'prof-designs-site-health',
+                static function (): void {
+                    wp_safe_redirect( admin_url( 'site-health.php' ) );
+                    exit;
+                }
+            );
         }
 
         /**
