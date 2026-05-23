@@ -56,7 +56,6 @@
         }
 
 
-
         /**
          * Conditionally add capability filter based on current page
          *
@@ -74,15 +73,22 @@
             // We must grant view_site_health_checks directly at priority 0 to bypass this issue
             if ( $pagenow === 'site-health.php' ) {
                 add_filter( 'user_has_cap', [ __CLASS__, 'grant_site_health_caps' ], 0, 4 );
+
                 return;
             }
 
             // For Site Health AJAX, grant capabilities at priority 0
             if ( defined( 'DOING_AJAX' ) && DOING_AJAX && isset( $_REQUEST['action'] ) ) {
-                $health_actions = [ 'health-check', 'health-check-loopback', 'health-check-background-updates', 'health-check-files-integrity' ];
+                $health_actions = [
+                    'health-check',
+                    'health-check-loopback',
+                    'health-check-background-updates',
+                    'health-check-files-integrity',
+                ];
                 foreach ( $health_actions as $action ) {
                     if ( strpos( $_REQUEST['action'], $action ) !== false ) {
                         add_filter( 'user_has_cap', [ __CLASS__, 'grant_site_health_caps' ], 0, 4 );
+
                         return;
                     }
                 }
@@ -113,15 +119,15 @@
         public static function grant_site_health_caps( array $allcaps, array $caps, array $args, $user ): array {
             // Directly grant the Site Health capability that WordPress checks for
             $allcaps['view_site_health_checks'] = true;
-            
+
             // Also grant the underlying capabilities so Site Health tests can run properly
             $allcaps['install_plugins'] = true;
             $allcaps['update_plugins']  = true;
             $allcaps['update_themes']   = true;
             $allcaps['update_core']     = true;
-            
+
             // Note: Logging removed to prevent log pollution (this is called on every capability check)
-            
+
             return $allcaps;
         }
 
@@ -137,7 +143,7 @@
 
             // Cache lock state for 1 hour to avoid repeated constant checks
             $lock_modifications = get_transient( 'prof_guardian_lock_state_cache' );
-            if ( false === $lock_modifications ) {
+            if ( $lock_modifications === false ) {
                 $lock_modifications = defined( 'PROFDESIGNS_GUARDIAN_LOCK_MODS' ) ? PROFDESIGNS_GUARDIAN_LOCK_MODS : true;
                 set_transient( 'prof_guardian_lock_state_cache', $lock_modifications, HOUR_IN_SECONDS );
             }
@@ -184,12 +190,12 @@
         public static function filter_manual_update_caps( array $allcaps, array $caps, array $args, $user ): array {
             static $call_count = 0;
             static $slow_calls = 0;
-            $call_count++;
+            $call_count ++;
             $timer_start = microtime( true );
 
             // Cache lock state for 1 hour to avoid repeated constant checks
             $lock_modifications = get_transient( 'prof_guardian_lock_state_cache' );
-            if ( false === $lock_modifications ) {
+            if ( $lock_modifications === false ) {
                 $lock_modifications = defined( 'PROFDESIGNS_GUARDIAN_LOCK_MODS' ) ? PROFDESIGNS_GUARDIAN_LOCK_MODS : true;
                 set_transient( 'prof_guardian_lock_state_cache', $lock_modifications, HOUR_IN_SECONDS );
             }
@@ -231,7 +237,7 @@
 
             // Track slow calls
             if ( $exec_time > 10 ) {
-                $slow_calls++;
+                $slow_calls ++;
                 prof_guardian_log( sprintf( '[Guardian] filter_manual_update_caps: SLOW call #%d (%.2fms)', $slow_calls, $exec_time ) );
             }
 
@@ -258,22 +264,23 @@
             $lock_modifications = defined( 'PROFDESIGNS_GUARDIAN_LOCK_MODS' ) ? PROFDESIGNS_GUARDIAN_LOCK_MODS : true;
 
             $stored_lock_state = get_option( 'prof_guardian_lock_state' );
-            
+
             // Convert stored value to boolean for comparison
             $stored_bool = ( $stored_lock_state === '1' || $stored_lock_state === 1 || $stored_lock_state === true );
-            
+
             // First run: option doesn't exist yet
-            if ( false === $stored_lock_state ) {
+            if ( $stored_lock_state === false ) {
                 // Set a temporary lock to prevent concurrent runs
                 set_transient( 'prof_guardian_caps_updating', 1, 10 );
-                
+
                 prof_guardian_log( sprintf( '[Guardian] Initial capability setup (lock=%s)', $lock_modifications ? 'true' : 'false' ) );
                 self::remove_editor_capabilities();
-                
+
                 delete_transient( 'prof_guardian_caps_updating' );
-                
+
                 $exec_time = ( microtime( true ) - $timer_start ) * 1000;
                 prof_guardian_log( sprintf( '[Guardian] Initial setup complete: %.2fms', $exec_time ) );
+
                 return;
             }
 
@@ -284,14 +291,14 @@
 
             // Set a temporary lock to prevent concurrent runs
             set_transient( 'prof_guardian_caps_updating', 1, 10 );
-            
+
             prof_guardian_log( sprintf( '[Guardian] Lock state changed: %s -> %s', $stored_bool ? 'true' : 'false', $lock_modifications ? 'true' : 'false' ) );
 
             // Update capabilities
             self::remove_editor_capabilities();
-            
+
             delete_transient( 'prof_guardian_caps_updating' );
-            
+
             $exec_time = ( microtime( true ) - $timer_start ) * 1000;
             prof_guardian_log( sprintf( '[Guardian] Capabilities updated: %.2fms', $exec_time ) );
         }
@@ -348,13 +355,13 @@
                         }
                     }
                 }
-                
-                $roles_processed++;
+
+                $roles_processed ++;
             }
 
             // Store the lock state as integer (1 or 0)
             $new_state = $lock_modifications ? 1 : 0;
-            $updated = update_option( 'prof_guardian_lock_state', $new_state, false );
+            $updated   = update_option( 'prof_guardian_lock_state', $new_state, false );
 
             if ( ! $updated ) {
                 prof_guardian_log( '[Guardian] WARNING: Failed to update prof_guardian_lock_state option!' );
@@ -386,7 +393,7 @@
 
             // Cache lock state for 1 hour to avoid repeated constant checks
             $lock_modifications = get_transient( 'prof_guardian_lock_state_cache' );
-            if ( false === $lock_modifications ) {
+            if ( $lock_modifications === false ) {
                 $lock_modifications = defined( 'PROFDESIGNS_GUARDIAN_LOCK_MODS' ) ? PROFDESIGNS_GUARDIAN_LOCK_MODS : true;
                 set_transient( 'prof_guardian_lock_state_cache', $lock_modifications, HOUR_IN_SECONDS );
             }
@@ -412,7 +419,7 @@
          */
         public static function maybe_protect_uploads_directory(): void {
             $timer_start = microtime( true );
-            $last_check = get_option( 'prof_guardian_uploads_setup' );
+            $last_check  = get_option( 'prof_guardian_uploads_setup' );
 
             // Skip if checked within the last 24 hours
             if ( $last_check && ( time() - $last_check ) < DAY_IN_SECONDS ) {
@@ -420,7 +427,8 @@
             }
 
             $hours_since = $last_check ? round( ( time() - $last_check ) / 3600, 1 ) : 'never';
-            prof_guardian_log( sprintf( '[Guardian] Upload protection check starting (last checked: %s)', $last_check ? $hours_since . ' hours ago' : 'never' ) );
+            prof_guardian_log( sprintf( '[Guardian] Upload protection check starting (last checked: %s)', $last_check ? $hours_since
+                                                                                                                        . ' hours ago' : 'never' ) );
 
             // Check and protect uploads directory
             self::protect_uploads_directory();
@@ -469,14 +477,24 @@
 Options -Indexes
 HTACCESS;
 
-                @file_put_contents( $htaccess_file, $htaccess_content );
+                $result = @file_put_contents( $htaccess_file, $htaccess_content );
+                if ( $result === false ) {
+                    prof_guardian_log( '[Guardian] WARNING: Failed to create .htaccess in uploads directory' );
+                } else {
+                    prof_guardian_log( '[Guardian] Created .htaccess in uploads directory' );
+                }
             }
 
             // Create index.php to prevent directory listing as fallback
             $index_file = $basedir . '/index.php';
 
             if ( ! file_exists( $index_file ) ) {
-                @file_put_contents( $index_file, '<?php // Silence is golden' );
+                $result = @file_put_contents( $index_file, '<?php // Silence is golden' );
+                if ( $result === false ) {
+                    prof_guardian_log( '[Guardian] WARNING: Failed to create index.php in uploads directory' );
+                } else {
+                    prof_guardian_log( '[Guardian] Created index.php in uploads directory' );
+                }
             }
         }
 
@@ -529,6 +547,7 @@ HTACCESS;
             // Check file extension
             if ( in_array( $file_ext, $dangerous_extensions, true ) ) {
                 $file['error'] = sprintf( 'Security: Upload blocked. "%s" files are not allowed for security reasons.', $file_ext );
+                prof_guardian_log( sprintf( '[Guardian] BLOCKED file upload: %s (extension: %s)', $filename, $file_ext ) );
 
                 return $file;
             }
@@ -541,6 +560,7 @@ HTACCESS;
                 foreach ( $all_extensions as $ext ) {
                     if ( in_array( strtolower( $ext ), $dangerous_extensions, true ) ) {
                         $file['error'] = 'Security: Upload blocked. Multiple file extensions detected.';
+                        prof_guardian_log( sprintf( '[Guardian] BLOCKED file upload: %s (double extension detected)', $filename ) );
 
                         return $file;
                     }
@@ -559,6 +579,7 @@ HTACCESS;
 
             if ( in_array( $file_type, $dangerous_mimes, true ) ) {
                 $file['error'] = 'Security: Upload blocked. File type not allowed.';
+                prof_guardian_log( sprintf( '[Guardian] BLOCKED file upload: %s (MIME type: %s)', $filename, $file_type ) );
 
                 return $file;
             }

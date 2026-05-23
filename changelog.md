@@ -13,6 +13,12 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## TODO
 
+## 0.6.2 - 23.05.2026 (Production Testing)
+- [ ] `Added` Logging for blocked file uploads (security monitoring)
+- [ ] `Added` Logging for upload directory protection file creation
+- [ ] `Added` Warnings when .htaccess or index.php creation fails
+- [ ] `Improved` Capability restoration only runs when needed (performance optimization)
+
 ## 1.0.0 - 01.07.2026
 - [x] `Added` Automatic WordPress core, plugin, and theme updates
 - [x] `Added` Fatal PHP error monitoring with email notifications

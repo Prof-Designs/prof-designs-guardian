@@ -83,7 +83,11 @@
     // Run setup only on admin pages to avoid frontend overhead
     if ( is_admin() ) {
         add_action( 'admin_init', 'prof_designs_guardian_setup', 5 );
-        add_action( 'admin_init', 'prof_designs_guardian_restore_capabilities', 3 );
+
+        // Only register restoration if it hasn't been done yet (optimization)
+        if ( ! get_option( 'prof_guardian_caps_restored_v2' ) ) {
+            add_action( 'admin_init', 'prof_designs_guardian_restore_capabilities', 3 );
+        }
     }
 
     /**
@@ -112,10 +116,10 @@
 
         // Mark restoration as complete
         update_option( 'prof_guardian_caps_restored_v2', true, false );
-        
+
         // Force capability update
         ProfDesigns\Guardian\Security::remove_editor_capabilities();
-        
+
         error_log( '[Guardian] Capability restoration complete' );
     }
 
