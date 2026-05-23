@@ -35,9 +35,6 @@
 
             // Only run admin-specific hooks in admin context
             if ( is_admin() ) {
-                // Handle Site Health redirect FIRST, before any output
-                add_action( 'admin_init', [ __CLASS__, 'handle_site_health_redirect' ], 0 );
-
                 // Only check capabilities when settings might have changed
                 add_action( 'admin_init', [ __CLASS__, 'maybe_update_capabilities' ], 5 );
 
@@ -46,9 +43,6 @@
 
                 // Remove editor menu items
                 add_action( 'admin_menu', [ __CLASS__, 'remove_editor_menus' ], 999 );
-
-                // Add Site Health to Settings menu as fallback
-                add_action( 'admin_menu', [ __CLASS__, 'add_site_health_menu' ], 100 );
 
                 // Only check uploads protection once per day
                 add_action( 'admin_init', [ __CLASS__, 'maybe_protect_uploads_directory' ], 5 );
@@ -61,22 +55,7 @@
             add_filter( 'wp_handle_upload_prefilter', [ __CLASS__, 'block_suspicious_uploads' ] );
         }
 
-        /**
-         * Handle Site Health redirect early
-         *
-         * Redirects before any output to avoid header warnings
-         *
-         * @return void
-         *
-         * @since 1.0.1
-         */
-        public static function handle_site_health_redirect(): void {
-            if ( isset( $_GET['page'] ) && $_GET['page'] === 'prof-designs-site-health' ) {
-                prof_guardian_log( '[Guardian] Redirecting to Site Health...' );
-                wp_safe_redirect( admin_url( 'site-health.php' ) );
-                exit;
-            }
-        }
+
 
         /**
          * Conditionally add capability filter based on current page
@@ -90,25 +69,20 @@
         public static function maybe_add_capability_filter(): void {
             global $pagenow;
 
-            // On Site Health pages, add filter to GRANT capabilities instead
+            // CRITICAL: Grant Site Health capability at priority 0, BEFORE WordPress checks at priority 1
+            // WordPress's wp_maybe_grant_site_health_caps runs at priority 1 and checks for install_plugins
+            // We must grant view_site_health_checks directly at priority 0 to bypass this issue
             if ( $pagenow === 'site-health.php' ) {
-                prof_guardian_log( '[Guardian] Granting capabilities for Site Health page' );
-                add_filter( 'user_has_cap', [ __CLASS__, 'grant_site_health_caps' ], 10, 1 );
+                add_filter( 'user_has_cap', [ __CLASS__, 'grant_site_health_caps' ], 0, 4 );
                 return;
             }
 
-            // Skip our Site Health redirect page (already handled by early redirect)
-            if ( isset( $_GET['page'] ) && $_GET['page'] === 'prof-designs-site-health' ) {
-                return;
-            }
-
-            // For Site Health AJAX, grant capabilities
+            // For Site Health AJAX, grant capabilities at priority 0
             if ( defined( 'DOING_AJAX' ) && DOING_AJAX && isset( $_REQUEST['action'] ) ) {
                 $health_actions = [ 'health-check', 'health-check-loopback', 'health-check-background-updates', 'health-check-files-integrity' ];
                 foreach ( $health_actions as $action ) {
                     if ( strpos( $_REQUEST['action'], $action ) !== false ) {
-                        prof_guardian_log( sprintf( '[Guardian] Granting capabilities for Health check AJAX (%s)', $_REQUEST['action'] ) );
-                        add_filter( 'user_has_cap', [ __CLASS__, 'grant_site_health_caps' ], 10, 1 );
+                        add_filter( 'user_has_cap', [ __CLASS__, 'grant_site_health_caps' ], 0, 4 );
                         return;
                     }
                 }
@@ -122,20 +96,31 @@
          * Grant capabilities needed for Site Health checks
          *
          * Site Health needs these capabilities to run tests, even when
-         * modifications are locked
+         * modifications are locked.
          *
-         * @param array $allcaps All capabilities
+         * CRITICAL: This must run at priority 0, BEFORE WordPress's
+         * wp_maybe_grant_site_health_caps filter at priority 1
+         *
+         * @param array    $allcaps All capabilities
+         * @param array    $caps    Required capabilities
+         * @param array    $args    Additional arguments
+         * @param \WP_User $user    User object
          *
          * @return array Modified capabilities
          *
          * @since 1.0.1
          */
-        public static function grant_site_health_caps( array $allcaps ): array {
-            // Grant capabilities needed for Site Health to function
+        public static function grant_site_health_caps( array $allcaps, array $caps, array $args, $user ): array {
+            // Directly grant the Site Health capability that WordPress checks for
+            $allcaps['view_site_health_checks'] = true;
+            
+            // Also grant the underlying capabilities so Site Health tests can run properly
             $allcaps['install_plugins'] = true;
             $allcaps['update_plugins']  = true;
             $allcaps['update_themes']   = true;
             $allcaps['update_core']     = true;
+            
+            // Note: Logging removed to prevent log pollution (this is called on every capability check)
             
             return $allcaps;
         }
@@ -220,6 +205,8 @@
             }
 
             $blocked_actions = [
+                'install-plugin',        // Block manual plugin installation from repository
+                'upload-plugin',         // Block plugin upload
                 'update-plugin',
                 'update-selected',
                 'delete-selected',
@@ -233,10 +220,11 @@
             }
 
             // Only now do we modify capabilities
-            $allcaps['update_plugins'] = false;
-            $allcaps['update_themes']  = false;
-            $allcaps['delete_plugins'] = false;
-            $allcaps['delete_themes']  = false;
+            $allcaps['install_plugins'] = false;  // Block actual installation attempts
+            $allcaps['update_plugins']  = false;
+            $allcaps['update_themes']   = false;
+            $allcaps['delete_plugins']  = false;
+            $allcaps['delete_themes']   = false;
 
             $exec_time = ( microtime( true ) - $timer_start ) * 1000;
             prof_guardian_log( sprintf( '[Guardian] Blocked manual update action: %s (%.2fms)', $_REQUEST['action'], $exec_time ) );
@@ -340,10 +328,10 @@
                 $role->remove_cap( 'edit_files' );
 
                 // Handle installation/modification capabilities
-                // Note: We keep update_* capabilities so admins can VIEW update pages
-                // Auto-updates still work via WP_Cron regardless of these caps
+                // IMPORTANT: We keep install_plugins to allow Site Health access
+                // Site Health requires this capability to grant view_site_health_checks
+                // Actual plugin installations are blocked via runtime filter
                 $mod_caps = [
-                    'install_plugins',
                     'upload_plugins',
                     'delete_plugins',
                     'install_themes',
@@ -411,27 +399,6 @@
             if ( $exec_time > 5 ) {
                 prof_guardian_log( sprintf( '[Guardian] remove_editor_menus: %.2fms (slow)', $exec_time ) );
             }
-        }
-
-        /**
-         * Add Site Health link to Settings menu
-         *
-         * Provides easy access to Site Health even if dashboard widget is removed
-         * Redirect is handled early in admin_init to avoid output issues
-         *
-         * @return void
-         *
-         * @since 1.0.1
-         */
-        public static function add_site_health_menu(): void {
-            add_submenu_page(
-                'tools.php',
-                __( 'Site Health', 'prof-designs-guardian' ),
-                __( 'Site Health', 'prof-designs-guardian' ),
-                'manage_options',
-                'prof-designs-site-health',
-                '__return_false' // Placeholder callback - redirect happens in admin_init
-            );
         }
 
         /**

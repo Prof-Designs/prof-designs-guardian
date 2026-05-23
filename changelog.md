@@ -12,18 +12,16 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `Removed` for now removed features.
 
 ## TODO
-- [ ] Fix Site Health page showing "Sorry, you are not allowed to access this page" when PROFDESIGNS_GUARDIAN_LOCK_MODS is enabled
 
 ## 1.0.0 - 01.07.2026
-- [x] `Added` Automatic updates for WordPress core, plugins, and themes
+- [x] `Added` Automatic WordPress core, plugin, and theme updates
 - [x] `Added` Fatal PHP error monitoring with email notifications
-- [x] `Added` Website health checks with timeout protection
-- [x] `Added` File editor protection and security hardening
-- [x] `Added` Upload security with daily background verification
+- [x] `Added` Hourly website health checks with timeout protection
+- [x] `Added` File editor protection (disables theme/plugin editors)
+- [x] `Added` Plugin and theme installation lockdown (optional via wp-config.php)
+- [x] `Added` Upload directory security hardening (.htaccess protection)
 - [x] `Added` Malicious file upload prevention
-- [x] `Added` Optimized security capability checks for better performance
-- [x] `Added` Smart alert throttling and error deduplication
-- [x] `Added` MU plugin support
-- [x] `Added` PROFDESIGNS_GUARDIAN_UPDATES constant to control auto-updates independently
-- [x] `Added` Performance timing debug for all major hooks
-- [x] `Added` Transient caching for lock state checks (1-hour cache)
+- [x] `Added` Smart email alert throttling (prevents notification floods)
+- [x] `Added` PROFDESIGNS_GUARDIAN_UPDATES constant to control auto-updates
+- [x] `Added` PROFDESIGNS_GUARDIAN_LOCK_MODS constant to control manual modifications
+- [x] `Added` PROFDESIGNS_GUARDIAN_EMAIL constant for custom alert email

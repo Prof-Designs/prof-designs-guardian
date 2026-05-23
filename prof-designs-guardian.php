@@ -3,7 +3,7 @@
      * Plugin Name: Prof Designs Guardian
      * Plugin URI: https://prof-designs.com/guardian
      * Description: A  plugin that provides automatic updates, error handling, and health checks for your website.
-     * Version: 0.5.9
+     * Version: 0.6.2
      *
      * Author: Prof Designs
      * Author URI: https://profdesigns.com
@@ -83,6 +83,40 @@
     // Run setup only on admin pages to avoid frontend overhead
     if ( is_admin() ) {
         add_action( 'admin_init', 'prof_designs_guardian_setup', 5 );
+        add_action( 'admin_init', 'prof_designs_guardian_restore_capabilities', 3 );
+    }
+
+    /**
+     * One-time capability restoration for Site Health fix
+     *
+     * Restores install_plugins to administrator role if it was previously removed
+     * This fixes the "Sorry, you are not allowed" error on Site Health page
+     *
+     * @since 0.6.1
+     */
+    function prof_designs_guardian_restore_capabilities() {
+        // Check if restoration has already been done
+        if ( get_option( 'prof_guardian_caps_restored_v2' ) ) {
+            return;
+        }
+
+        error_log( '[Guardian] Restoring install_plugins capability for Site Health compatibility...' );
+
+        $admin_role = get_role( 'administrator' );
+        if ( $admin_role && ! $admin_role->has_cap( 'install_plugins' ) ) {
+            $admin_role->add_cap( 'install_plugins' );
+            error_log( '[Guardian] Restored install_plugins to administrator role' );
+        } else {
+            error_log( '[Guardian] Administrator already has install_plugins capability' );
+        }
+
+        // Mark restoration as complete
+        update_option( 'prof_guardian_caps_restored_v2', true, false );
+        
+        // Force capability update
+        ProfDesigns\Guardian\Security::remove_editor_capabilities();
+        
+        error_log( '[Guardian] Capability restoration complete' );
     }
 
     // Initialize plugin components
@@ -90,5 +124,3 @@
     ProfDesigns\Guardian\AutoUpdates::init();
     ProfDesigns\Guardian\ErrorHandler::init();
     ProfDesigns\Guardian\HealthCheck::init();
-
-    prof_guardian_log( '[Guardian] All components initialized' );
