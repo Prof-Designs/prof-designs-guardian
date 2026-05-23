@@ -165,8 +165,9 @@
             }
 
             $exec_time = ( microtime( true ) - $timer_start ) * 1000;
-            if ( $exec_time > 5 ) {
-                error_log( sprintf( '[Guardian] block_update_pages: %.2fms', $exec_time ) );
+            // Only log if execution time is unusually slow (> 20ms)
+            if ( $exec_time > 20 ) {
+                error_log( sprintf( '[Guardian] block_update_pages: %.2fms (slow)', $exec_time ) );
             }
         }
 
@@ -235,8 +236,8 @@
             $exec_time = ( microtime( true ) - $timer_start ) * 1000;
             prof_guardian_log( sprintf( '[Guardian] Blocked manual update action: %s (%.2fms)', $_REQUEST['action'], $exec_time ) );
 
-            // Track slow calls
-            if ( $exec_time > 10 ) {
+            // Track unusually slow calls (> 20ms)
+            if ( $exec_time > 20 ) {
                 $slow_calls ++;
                 prof_guardian_log( sprintf( '[Guardian] filter_manual_update_caps: SLOW call #%d (%.2fms)', $slow_calls, $exec_time ) );
             }
@@ -363,8 +364,14 @@
             $new_state = $lock_modifications ? 1 : 0;
             $updated   = update_option( 'prof_guardian_lock_state', $new_state, false );
 
+            // Note: update_option() returns false if the value hasn't changed (WordPress optimization)
+            // This is not an error - verify the actual stored value instead
             if ( ! $updated ) {
-                prof_guardian_log( '[Guardian] WARNING: Failed to update prof_guardian_lock_state option!' );
+                $stored_value = get_option( 'prof_guardian_lock_state' );
+                if ( $stored_value != $new_state ) {
+                    prof_guardian_log( sprintf( '[Guardian] WARNING: Failed to update prof_guardian_lock_state! Expected: %d, Got: %s', $new_state, $stored_value ) );
+                }
+                // If values match, WordPress just skipped the update (no change needed)
             }
 
             // Clear the cached lock state so next check picks up the change
@@ -403,7 +410,8 @@
             }
 
             $exec_time = ( microtime( true ) - $timer_start ) * 1000;
-            if ( $exec_time > 5 ) {
+            // Only log if execution time is unusually slow (> 20ms)
+            if ( $exec_time > 20 ) {
                 prof_guardian_log( sprintf( '[Guardian] remove_editor_menus: %.2fms (slow)', $exec_time ) );
             }
         }
