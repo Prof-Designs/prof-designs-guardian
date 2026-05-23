@@ -14,6 +14,9 @@
     add_action( 'pre_current_active_plugins', function () use ( $plugin_file ) {
         global $plugins, $wp_list_table;
 
+        // Ensure plugin.php functions are available
+        require_once ABSPATH . 'wp-admin/includes/plugin.php';
+
         $plugin_data = get_plugin_data( WPMU_PLUGIN_DIR . '/' . $plugin_file, false, false );
 
         if ( empty( $plugin_data['Name'] ) ) {
@@ -25,8 +28,5 @@
 
         if ( $GLOBALS['status'] === 'mustuse' ) {
             $wp_list_table->items = $plugins['mustuse'];
-            foreach ( $wp_list_table->items as $file => $data ) {
-                $wp_list_table->items[ $file ] = _get_plugin_data_markup_translate( $file, $data, false );
-            }
         }
     } );

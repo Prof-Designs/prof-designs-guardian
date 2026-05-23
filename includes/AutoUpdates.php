@@ -31,7 +31,7 @@
             $updates_enabled = defined( 'PROFDESIGNS_GUARDIAN_UPDATES' ) ? PROFDESIGNS_GUARDIAN_UPDATES : true;
 
             if ( ! $updates_enabled ) {
-                error_log( '[Guardian] Auto-updates disabled via PROFDESIGNS_GUARDIAN_UPDATES constant' );
+                prof_guardian_log( '[Guardian] Auto-updates disabled via PROFDESIGNS_GUARDIAN_UPDATES constant' );
 
                 return;
             }

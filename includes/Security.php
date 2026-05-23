@@ -78,19 +78,20 @@
             }
 
             // For Site Health AJAX, grant capabilities at priority 0
-            if ( defined( 'DOING_AJAX' ) && DOING_AJAX && isset( $_REQUEST['action'] ) ) {
+            if ( defined( 'DOING_AJAX' )
+                 && DOING_AJAX
+                 && isset( $_REQUEST['action'] )
+                 && is_string( $_REQUEST['action'] ) ) {
                 $health_actions = [
                     'health-check',
                     'health-check-loopback',
                     'health-check-background-updates',
                     'health-check-files-integrity',
                 ];
-                foreach ( $health_actions as $action ) {
-                    if ( strpos( $_REQUEST['action'], $action ) !== false ) {
-                        add_filter( 'user_has_cap', [ __CLASS__, 'grant_site_health_caps' ], 0, 4 );
+                if ( in_array( $_REQUEST['action'], $health_actions, true ) ) {
+                    add_filter( 'user_has_cap', [ __CLASS__, 'grant_site_health_caps' ], 0, 4 );
 
-                        return;
-                    }
+                    return;
                 }
             }
 
@@ -141,16 +142,12 @@
         public static function block_update_pages(): void {
             $timer_start = microtime( true );
 
-            // Cache lock state for 1 hour to avoid repeated constant checks
-            $lock_modifications = get_transient( 'prof_guardian_lock_state_cache' );
-            if ( $lock_modifications === false ) {
-                $lock_modifications = defined( 'PROFDESIGNS_GUARDIAN_LOCK_MODS' ) ? PROFDESIGNS_GUARDIAN_LOCK_MODS : true;
-                set_transient( 'prof_guardian_lock_state_cache', $lock_modifications, HOUR_IN_SECONDS );
-            }
+            // Check lock state directly from constant (defined() is essentially free)
+            $lock_modifications = defined( 'PROFDESIGNS_GUARDIAN_LOCK_MODS' ) ? PROFDESIGNS_GUARDIAN_LOCK_MODS : true;
 
             if ( ! $lock_modifications ) {
                 $exec_time = ( microtime( true ) - $timer_start ) * 1000;
-                error_log( sprintf( '[Guardian] block_update_pages: %.2fms (lock disabled)', $exec_time ) );
+                prof_guardian_log( sprintf( '[Guardian] block_update_pages: %.2fms (lock disabled)', $exec_time ) );
 
                 return;
             }
@@ -160,14 +157,14 @@
             // Block direct access to update-core.php
             if ( $pagenow === 'update-core.php' ) {
                 $exec_time = ( microtime( true ) - $timer_start ) * 1000;
-                error_log( sprintf( '[Guardian] block_update_pages: %.2fms (blocked access)', $exec_time ) );
+                prof_guardian_log( sprintf( '[Guardian] block_update_pages: %.2fms (blocked access)', $exec_time ) );
                 wp_die( __( 'Manual updates are currently disabled. Automatic updates are still active.', 'prof-designs-guardian' ), __( 'Updates Locked', 'prof-designs-guardian' ), [ 'response' => 403 ] );
             }
 
             $exec_time = ( microtime( true ) - $timer_start ) * 1000;
             // Only log if execution time is unusually slow (> 20ms)
             if ( $exec_time > 20 ) {
-                error_log( sprintf( '[Guardian] block_update_pages: %.2fms (slow)', $exec_time ) );
+                prof_guardian_log( sprintf( '[Guardian] block_update_pages: %.2fms (slow)', $exec_time ) );
             }
         }
 
@@ -194,12 +191,8 @@
             $call_count ++;
             $timer_start = microtime( true );
 
-            // Cache lock state for 1 hour to avoid repeated constant checks
-            $lock_modifications = get_transient( 'prof_guardian_lock_state_cache' );
-            if ( $lock_modifications === false ) {
-                $lock_modifications = defined( 'PROFDESIGNS_GUARDIAN_LOCK_MODS' ) ? PROFDESIGNS_GUARDIAN_LOCK_MODS : true;
-                set_transient( 'prof_guardian_lock_state_cache', $lock_modifications, HOUR_IN_SECONDS );
-            }
+            // Check lock state directly from constant (defined() is essentially free)
+            $lock_modifications = defined( 'PROFDESIGNS_GUARDIAN_LOCK_MODS' ) ? PROFDESIGNS_GUARDIAN_LOCK_MODS : true;
 
             if ( ! $lock_modifications ) {
                 return $allcaps;
@@ -207,7 +200,7 @@
 
             // ONLY block when we're certain it's a manual update action
             // Be very specific to avoid interfering with other operations
-            if ( ! isset( $_REQUEST['action'] ) ) {
+            if ( ! isset( $_REQUEST['action'] ) || ! is_string( $_REQUEST['action'] ) ) {
                 return $allcaps;
             }
 
@@ -374,9 +367,6 @@
                 // If values match, WordPress just skipped the update (no change needed)
             }
 
-            // Clear the cached lock state so next check picks up the change
-            delete_transient( 'prof_guardian_lock_state_cache' );
-
             $exec_time = ( microtime( true ) - $timer_start ) * 1000;
             prof_guardian_log( sprintf( '[Guardian] Capabilities updated for %d roles: %.2fms (lock state: %d)', $roles_processed, $exec_time, $new_state ) );
         }
@@ -398,12 +388,8 @@
             remove_submenu_page( 'themes.php', 'theme-editor.php' );
             remove_submenu_page( 'plugins.php', 'plugin-editor.php' );
 
-            // Cache lock state for 1 hour to avoid repeated constant checks
-            $lock_modifications = get_transient( 'prof_guardian_lock_state_cache' );
-            if ( $lock_modifications === false ) {
-                $lock_modifications = defined( 'PROFDESIGNS_GUARDIAN_LOCK_MODS' ) ? PROFDESIGNS_GUARDIAN_LOCK_MODS : true;
-                set_transient( 'prof_guardian_lock_state_cache', $lock_modifications, HOUR_IN_SECONDS );
-            }
+            // Check lock state directly from constant (defined() is essentially free)
+            $lock_modifications = defined( 'PROFDESIGNS_GUARDIAN_LOCK_MODS' ) ? PROFDESIGNS_GUARDIAN_LOCK_MODS : true;
 
             if ( $lock_modifications ) {
                 remove_submenu_page( 'index.php', 'update-core.php' );
@@ -533,7 +519,6 @@ HTACCESS;
                 'cmd',
                 'sh',
                 'bash',
-                'js',
                 'jar',
                 'vbs',
                 'pl',

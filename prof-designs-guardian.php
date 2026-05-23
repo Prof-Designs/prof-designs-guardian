@@ -2,8 +2,8 @@
     /**
      * Plugin Name: Prof Designs Guardian
      * Plugin URI: https://prof-designs.com/guardian
-     * Description: A  plugin that provides automatic updates, error handling, and health checks for your website.
-     * Version: 0.6.3
+     * Description: A plugin that provides automatic updates, error handling, and health checks for your website.
+     * Version: 0.7.0
      *
      * Author: Prof Designs
      * Author URI: https://profdesigns.com
@@ -55,29 +55,30 @@
             return;
         }
 
-        error_log( '[Guardian] === INITIAL SETUP STARTING ===' );
+        prof_guardian_log( '[Guardian] === INITIAL SETUP STARTING ===' );
 
         // Run one-time security setup
-        error_log( '[Guardian] Setting up security capabilities...' );
+        prof_guardian_log( '[Guardian] Setting up security capabilities...' );
         ProfDesigns\Guardian\Security::remove_editor_capabilities();
 
-        error_log( '[Guardian] Protecting uploads directory...' );
+        prof_guardian_log( '[Guardian] Protecting uploads directory...' );
         ProfDesigns\Guardian\Security::protect_uploads_directory();
         update_option( 'prof_guardian_uploads_setup', time(), false );
 
         // Schedule health checks
         if ( ! wp_next_scheduled( 'guardian_health_check' ) ) {
-            error_log( '[Guardian] Scheduling hourly health checks...' );
+            prof_guardian_log( '[Guardian] Scheduling hourly health checks...' );
             wp_schedule_event( time(), 'hourly', 'guardian_health_check' );
         }
 
         // Mark setup as complete
         update_option( 'prof_guardian_setup_done', true, false );
 
-        // Send test email with Site Health summary
-        ProfDesigns\Guardian\Mailer::send_test_email();
+        // Schedule test email to run in 60 seconds (async to avoid blocking this request)
+        wp_schedule_single_event( time() + 60, 'guardian_send_test_email' );
+        prof_guardian_log( '[Guardian] Scheduled test email to send in 60 seconds' );
 
-        error_log( '[Guardian] === INITIAL SETUP COMPLETE ===' );
+        prof_guardian_log( '[Guardian] === INITIAL SETUP COMPLETE ===' );
     }
 
     // Run setup only on admin pages to avoid frontend overhead
@@ -104,14 +105,14 @@
             return;
         }
 
-        error_log( '[Guardian] Restoring install_plugins capability for Site Health compatibility...' );
+        prof_guardian_log( '[Guardian] Restoring install_plugins capability for Site Health compatibility...' );
 
         $admin_role = get_role( 'administrator' );
         if ( $admin_role && ! $admin_role->has_cap( 'install_plugins' ) ) {
             $admin_role->add_cap( 'install_plugins' );
-            error_log( '[Guardian] Restored install_plugins to administrator role' );
+            prof_guardian_log( '[Guardian] Restored install_plugins to administrator role' );
         } else {
-            error_log( '[Guardian] Administrator already has install_plugins capability' );
+            prof_guardian_log( '[Guardian] Administrator already has install_plugins capability' );
         }
 
         // Mark restoration as complete
@@ -120,8 +121,22 @@
         // Force capability update
         ProfDesigns\Guardian\Security::remove_editor_capabilities();
 
-        error_log( '[Guardian] Capability restoration complete' );
+        prof_guardian_log( '[Guardian] Capability restoration complete' );
     }
+
+    /**
+     * Send test email via cron (async)
+     *
+     * @return void
+     *
+     * @since 0.7.0
+     */
+    function prof_designs_guardian_send_test_email() {
+        ProfDesigns\Guardian\Mailer::send_test_email();
+    }
+
+    // Register test email cron handler
+    add_action( 'guardian_send_test_email', 'prof_designs_guardian_send_test_email' );
 
     // Initialize plugin components
     ProfDesigns\Guardian\Security::init();

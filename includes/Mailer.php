@@ -19,15 +19,6 @@
      */
     class Mailer {
         /**
-         * Fallback email address when no custom address is configured
-         *
-         * @var string
-         *
-         * @since 1.0.0
-         */
-        private static $fallbackEmail = 'dev@prof-designs.lv';
-
-        /**
          * Send email notification
          *
          * @param string $subject Email subject line
@@ -38,11 +29,25 @@
          * @since 1.0.0
          */
         public static function send( string $subject, array $data = [] ): void {
+            // Capture wp_mail errors temporarily for this send
+            add_action( 'wp_mail_failed', [ __CLASS__, 'log_mail_error' ], 10, 1 );
+
+            // Determine recipient with fallback for fatal error scenarios
+            if ( defined( 'PROFDESIGNS_GUARDIAN_EMAIL' ) ) {
+                $to = PROFDESIGNS_GUARDIAN_EMAIL;
+            } elseif ( function_exists( 'get_option' ) ) {
+                // WordPress is available, use admin email
+                $to = get_option( 'admin_email' );
+            } else {
+                // Fatal error scenario: WordPress not fully loaded and no constant defined
+                // Cannot reliably determine recipient email - abort
+                error_log( '[Guardian] ERROR: Cannot send email - WordPress not loaded and PROFDESIGNS_GUARDIAN_EMAIL not defined' );
+                return;
+            }
+
             $siteUrl = home_url();
 
-            $to = defined( 'PROFDESIGNS_GUARDIAN_EMAIL' ) ? PROFDESIGNS_GUARDIAN_EMAIL : self::$fallbackEmail;
-
-            error_log( sprintf( '[Guardian] Sending email to %s - Subject: %s', $to, $subject ) );
+            prof_guardian_log( sprintf( '[Guardian] Sending email to %s - Subject: %s', $to, $subject ) );
 
             $message = '';
             foreach ( $data as $key => $value ) {
@@ -53,10 +58,29 @@
 
             $result = wp_mail( $to, '[' . parse_url( $siteUrl, PHP_URL_HOST ) . '] ' . $subject, $message );
 
+            // Remove the error handler after sending
+            remove_action( 'wp_mail_failed', [ __CLASS__, 'log_mail_error' ], 10 );
+
             if ( $result ) {
-                error_log( '[Guardian] Email sent successfully' );
+                prof_guardian_log( '[Guardian] Email sent successfully' );
             } else {
-                error_log( '[Guardian] Email sending FAILED' );
+                // CRITICAL: Always log email failures (even in production) since alerts won't reach admin
+                error_log( sprintf( '[Guardian] CRITICAL: Email sending FAILED - Subject: %s, Recipient: %s', $subject, $to ) );
+            }
+        }
+
+        /**
+         * Log wp_mail errors with detailed error message
+         *
+         * @param \WP_Error $error WP_Error object from wp_mail_failed action
+         *
+         * @return void
+         *
+         * @since 0.7.0
+         */
+        public static function log_mail_error( $error ): void {
+            if ( is_wp_error( $error ) ) {
+                error_log( sprintf( '[Guardian] SMTP Error: %s', $error->get_error_message() ) );
             }
         }
 
@@ -124,14 +148,21 @@
             // Send email
             $to = defined( 'PROFDESIGNS_GUARDIAN_EMAIL' ) ? PROFDESIGNS_GUARDIAN_EMAIL : get_option( 'admin_email' );
 
-            error_log( '[Guardian] Sending test email to: ' . $to );
+            prof_guardian_log( '[Guardian] Sending test email to: ' . $to );
+
+            // Capture wp_mail errors temporarily for this send
+            add_action( 'wp_mail_failed', [ __CLASS__, 'log_mail_error' ], 10, 1 );
 
             $result = wp_mail( $to, $subject, $message );
 
+            // Remove the error handler after sending
+            remove_action( 'wp_mail_failed', [ __CLASS__, 'log_mail_error' ], 10 );
+
             if ( $result ) {
-                error_log( '[Guardian] Test email sent successfully' );
+                prof_guardian_log( '[Guardian] Test email sent successfully' );
             } else {
-                error_log( '[Guardian] Test email sending FAILED' );
+                // CRITICAL: Always log email failures in production
+                error_log( sprintf( '[Guardian] CRITICAL: Test email sending FAILED - Recipient: %s', $to ) );
             }
         }
 
@@ -182,7 +213,7 @@
                     }
                 }
             } catch ( \Exception $e ) {
-                error_log( '[Guardian] Failed to get Site Health data: ' . $e->getMessage() );
+                prof_guardian_log( '[Guardian] Failed to get Site Health data: ' . $e->getMessage() );
             }
 
             return $summary;

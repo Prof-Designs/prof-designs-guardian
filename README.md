@@ -28,16 +28,25 @@ If the website works correctly, Guardian stays silent.
 If problems appear, Guardian notifies administrators intelligently.
 
 ## Optional wp-config.php Settings
+
+**By default (no configuration needed):**
+- Auto-updates: **ENABLED**
+- Manual changes: **BLOCKED**
+- Email alerts: sent to site admin email
+
+**To customize, add these constants to wp-config.php:**
+
 ```php
-// Custom email for alerts (defaults to admin email)
+// Custom email for priority support alerts (optional)
+// Default: site admin email from Settings → General
 define('PROFDESIGNS_GUARDIAN_EMAIL', 'alerts@example.com');
 
-// Lock plugin/theme installation and deletion (defaults to true)
-// Set to false when you need to manually install/update/delete plugins or themes
+// To DISABLE plugin/theme modification lock (when you need to install/update manually):
+// Default: true (locked for security)
 define('PROFDESIGNS_GUARDIAN_LOCK_MODS', false);
 
-// Enable/disable automatic updates (defaults to true)
-// Set to false to disable auto-updates while keeping security locks active
+// To DISABLE automatic updates (not recommended):
+// Default: true (auto-updates enabled)
 define('PROFDESIGNS_GUARDIAN_UPDATES', false);
 ```
 
