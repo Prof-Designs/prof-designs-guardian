@@ -12,6 +12,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `Removed` for now removed features.
 
 ## TODO
+- [ ] 'update now' hide on plugins list
 
 ## 0.9.0 - 24.05.2026 (Production Testing)
 - [x] `Added` Lightweight REST API health check endpoint (`/wp-json/guardian/v1/health`)
