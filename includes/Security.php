@@ -173,7 +173,15 @@
 
             if ( in_array( $pagenow, $blocked_pages, true ) ) {
                 $support_email = Helpers::get_support_email();
-                $message       = sprintf( __( 'Manual modifications are currently disabled for security. Automatic updates are still active.<br><br>If you need to make changes, please contact support: <strong>%s</strong>', 'prof-designs-guardian' ), esc_html( $support_email ) );
+                $message       = __( 'Manual modifications are currently disabled for security. Automatic updates are still active.', 'prof-designs-guardian' )
+                                 . '<br><br>'
+                                 . sprintf(
+                                     /* translators: %1$s and %3$s are HTML tags for emphasis, %2$s is the support email address */
+                                     __( 'If you need to make changes, please contact support: %1$s%2$s%3$s', 'prof-designs-guardian' ),
+                                     '<strong>',
+                                     esc_html( $support_email ),
+                                     '</strong>'
+                                 );
 
                 wp_die( $message, __( 'Modifications Locked', 'prof-designs-guardian' ), [ 'response' => 403 ] );
             }
@@ -232,7 +240,9 @@
             $allcaps['delete_plugins']  = false;
             $allcaps['delete_themes']   = false;
 
-            prof_guardian_log( sprintf( '[Guardian] Blocked manual update action: %s', $_REQUEST['action'] ) );
+            // Sanitize action for logging to prevent log injection attacks
+            $safe_action = sanitize_key( $_REQUEST['action'] );
+            prof_guardian_log( sprintf( '[Guardian] Blocked manual update action: %s', $safe_action ) );
 
             return $allcaps;
         }
@@ -512,6 +522,8 @@ HTACCESS;
                 'php4',
                 'php5',
                 'php7',
+                'php8',
+                'pht',
                 'phtml',
                 'phar',
                 'exe',
@@ -607,31 +619,28 @@ HTACCESS;
                 .upload-plugin-wrap,
                 .upload-theme,
                 
-                /* Hide update available notices and update links */
-                .update-message,
-                .plugin-update-tr,
-                .theme-update-tr,
-                tr.plugin-update-tr,
-                tr.theme-update-tr,
-                .update-available,
+                /* Hide update action buttons/links (preserve informational notices) */
+                .update-message a.update-link,
+                .update-message button,
+                .plugin-update-tr a.update-link,
+                .theme-update-tr a.update-link,
+                a.update-link,
                 
-                /* Hide bulk update checkboxes */
-                .plugins .check-column input[type="checkbox"],
-                .themes .check-column input[type="checkbox"],
-                
-                /* Hide "Update Available" notices in plugin/theme cards */
+                /* Hide "Update Now" buttons in plugin/theme cards */
                 .plugin-card .update-now,
                 .theme-card .update-now,
                 
-                /* Hide update count bubbles */
+                /* Hide update count bubbles in menu */
                 #menu-plugins .update-plugins,
                 #menu-appearance .update-plugins,
                 
-                /* Hide "Select All" checkbox on plugin page */
+                /* Hide bulk selection controls (checkboxes) */
+                .plugins .check-column input[type="checkbox"],
+                .themes .check-column input[type="checkbox"],
                 #cb-select-all-1,
                 #cb-select-all-2,
                 
-                /* Hide bulk actions dropdown when it only contains delete/update */
+                /* Hide bulk update actions from dropdown */
                 .plugins .tablenav .bulkactions select option[value="update-selected"],
                 .themes .tablenav .bulkactions select option[value="update-selected"],
                 
