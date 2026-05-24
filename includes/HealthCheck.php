@@ -45,9 +45,9 @@
             prof_guardian_log( '[Guardian] Health check starting...' );
 
             // Add timeout to prevent hanging
+            // SSL verification enabled to catch certificate issues
             $response = wp_remote_get( home_url(), [
-                'timeout'   => 10,
-                'sslverify' => false,
+                'timeout' => 10,
             ] );
 
             $elapsed = round( ( microtime( true ) - $start_time ) * 1000, 2 );

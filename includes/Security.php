@@ -146,15 +146,10 @@
          * @since 1.0.1
          */
         public static function block_update_pages(): void {
-            $timer_start = microtime( true );
-
             // Check lock state directly from constant (defined() is essentially free)
             $lock_modifications = defined( 'PROFDESIGNS_GUARDIAN_LOCK_MODS' ) ? PROFDESIGNS_GUARDIAN_LOCK_MODS : true;
 
             if ( ! $lock_modifications ) {
-                $exec_time = ( microtime( true ) - $timer_start ) * 1000;
-                prof_guardian_log( sprintf( '[Guardian] block_update_pages: %.2fms (lock disabled)', $exec_time ) );
-
                 return;
             }
 
@@ -168,9 +163,6 @@
             ];
 
             if ( in_array( $pagenow, $blocked_pages, true ) ) {
-                $exec_time = ( microtime( true ) - $timer_start ) * 1000;
-                prof_guardian_log( sprintf( '[Guardian] block_update_pages: %.2fms (blocked access to %s)', $exec_time, $pagenow ) );
-                
                 $support_email = Helpers::get_support_email();
                 $message = sprintf(
                     __( 'Manual modifications are currently disabled for security. Automatic updates are still active.<br><br>If you need to make changes, please contact support: <strong>%s</strong>', 'prof-designs-guardian' ),
@@ -182,12 +174,6 @@
                     __( 'Modifications Locked', 'prof-designs-guardian' ),
                     [ 'response' => 403 ]
                 );
-            }
-
-            $exec_time = ( microtime( true ) - $timer_start ) * 1000;
-            // Only log if execution time is unusually slow (> 20ms)
-            if ( $exec_time > 20 ) {
-                prof_guardian_log( sprintf( '[Guardian] block_update_pages: %.2fms (slow)', $exec_time ) );
             }
         }
 
@@ -664,8 +650,6 @@ HTACCESS;
                     display: none !important;
                 }
             </style>';
-
-            prof_guardian_log( '[Guardian] UI elements hidden (modifications locked)' );
         }
 
         /**

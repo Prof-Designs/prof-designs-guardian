@@ -22,7 +22,11 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - [x] `Added` `Helpers::get_support_email()` method to retrieve configured support email
 - [x] `Added` Admin bar update count removal when modifications are locked (prevents confusion)
 - [x] `Improved` Admin interface now clearly reflects locked state - elements you can't use are hidden
+- [x] `Improved` Reduced debug log noise by removing repetitive UI hiding and page blocking messages
+- [x] `Improved` One-time setup now runs on `init` instead of `admin_init` (works on headless sites)
+- [x] `Fixed` Removed duplicate health check scheduling (already handled by HealthCheck::init())
 - [x] `Security` Removed delete action links from plugins and themes when modifications are locked
+- [x] `Security` Enabled SSL certificate verification in health checks to detect certificate issues
 
 **Breaking Change:** If you're using `PROFDESIGNS_GUARDIAN_UPDATES` constant in your `wp-config.php`, rename it to `PROFDESIGNS_GUARDIAN_AUTO_UPDATES`. The old constant name will no longer work.
 

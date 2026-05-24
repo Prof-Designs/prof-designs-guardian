@@ -3,7 +3,7 @@
      * Plugin Name: Prof Designs Guardian
      * Plugin URI: https://prof-designs.com/guardian
      * Description: A plugin that provides automatic updates, error handling, and health checks for your website.
-     * Version: 0.8.0
+     * Version: 0.8.1
      *
      * Author: Prof Designs
      * Author URI: https://profdesigns.com
@@ -65,12 +65,6 @@
         ProfDesigns\Guardian\Security::protect_uploads_directory();
         update_option( 'prof_guardian_uploads_setup', time(), false );
 
-        // Schedule health checks
-        if ( ! wp_next_scheduled( 'guardian_health_check' ) ) {
-            prof_guardian_log( '[Guardian] Scheduling hourly health checks...' );
-            wp_schedule_event( time(), 'hourly', 'guardian_health_check' );
-        }
-
         // Mark setup as complete
         update_option( 'prof_guardian_setup_done', true, false );
 
@@ -81,10 +75,11 @@
         prof_guardian_log( '[Guardian] === INITIAL SETUP COMPLETE ===' );
     }
 
-    // Run setup only on admin pages to avoid frontend overhead
-    if ( is_admin() ) {
-        add_action( 'admin_init', 'prof_designs_guardian_setup', 5 );
+    // Run setup on init to ensure it works even on sites without admin page loads
+    add_action( 'init', 'prof_designs_guardian_setup', 5 );
 
+    // Run capability restoration only on admin pages (admin-specific operation)
+    if ( is_admin() ) {
         // Only register restoration if it hasn't been done yet (optimization)
         if ( ! get_option( 'prof_guardian_caps_restored_v2' ) ) {
             add_action( 'admin_init', 'prof_designs_guardian_restore_capabilities', 3 );

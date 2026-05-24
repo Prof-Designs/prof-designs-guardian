@@ -26,7 +26,7 @@
         $plugins['mustuse'][ $plugin_file ] = $plugin_data;
         $GLOBALS['totals']['mustuse']       = count( $plugins['mustuse'] );
 
-        if ( $GLOBALS['status'] === 'mustuse' ) {
+        if ( $GLOBALS['status'] === 'mustuse' && isset( $wp_list_table ) && is_object( $wp_list_table ) ) {
             $wp_list_table->items = $plugins['mustuse'];
         }
     } );
