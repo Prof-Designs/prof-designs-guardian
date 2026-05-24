@@ -47,4 +47,22 @@
 
             return true;
         }
+
+        /**
+         * Get the support email address
+         *
+         * Returns the custom PROFDESIGNS_GUARDIAN_EMAIL if defined,
+         * otherwise falls back to the site admin email.
+         *
+         * @return string Support email address
+         *
+         * @since 0.8.0
+         */
+        public static function get_support_email(): string {
+            if ( defined( 'PROFDESIGNS_GUARDIAN_EMAIL' ) && PROFDESIGNS_GUARDIAN_EMAIL ) {
+                return PROFDESIGNS_GUARDIAN_EMAIL;
+            }
+
+            return get_option( 'admin_email', 'admin@example.com' );
+        }
     }

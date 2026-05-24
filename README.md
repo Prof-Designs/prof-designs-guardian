@@ -47,13 +47,13 @@ define('PROFDESIGNS_GUARDIAN_LOCK_MODS', false);
 
 // To DISABLE automatic updates (not recommended):
 // Default: true (auto-updates enabled)
-define('PROFDESIGNS_GUARDIAN_UPDATES', false);
+define('PROFDESIGNS_GUARDIAN_AUTO_UPDATES', false);
 ```
 
 **Security Protection Levels:**
 - **File editing** - Always blocked (theme/plugin editors disabled)
 - **Plugin/Theme modifications** - Blocked by default via `PROFDESIGNS_GUARDIAN_LOCK_MODS`
-- **Automatic updates** - Enabled by default via `PROFDESIGNS_GUARDIAN_UPDATES`
+- **Automatic updates** - Enabled by default via `PROFDESIGNS_GUARDIAN_AUTO_UPDATES`
 
 **Configuration Scenarios:**
 
@@ -66,7 +66,7 @@ define('PROFDESIGNS_GUARDIAN_UPDATES', false);
 
 2. **Disable Auto-Updates, Keep Security**
    ```php
-   define('PROFDESIGNS_GUARDIAN_UPDATES', false);
+   define('PROFDESIGNS_GUARDIAN_AUTO_UPDATES', false);
    // - Auto-updates: DISABLED
    // - Manual changes: BLOCKED (you'll need LOCK_MODS=false to update manually)
    ```
@@ -80,7 +80,7 @@ define('PROFDESIGNS_GUARDIAN_UPDATES', false);
 
 4. **Disable Everything**
    ```php
-   define('PROFDESIGNS_GUARDIAN_UPDATES', false);
+   define('PROFDESIGNS_GUARDIAN_AUTO_UPDATES', false);
    define('PROFDESIGNS_GUARDIAN_LOCK_MODS', false);
    // - Auto-updates: DISABLED
    // - Manual changes: ALLOWED
@@ -91,6 +91,8 @@ When `PROFDESIGNS_GUARDIAN_LOCK_MODS` is `true` (default), no admin user can:
 - Install or upload themes
 - Delete plugins or themes
 - Manually update plugins or themes via admin dashboard
+
+When locked, the UI elements for these actions are automatically hidden to avoid confusion.
 
 This provides the same protection as `DISALLOW_FILE_MODS` but can be temporarily disabled for maintenance without deactivating the plugin.
 

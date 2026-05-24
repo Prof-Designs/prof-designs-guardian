@@ -49,6 +49,12 @@
 
                 // Add capability filter on admin_init when we can properly detect the page
                 add_action( 'admin_init', [ __CLASS__, 'maybe_add_capability_filter' ], 0 );
+
+                // Hide locked UI elements when modifications are locked
+                add_action( 'admin_head', [ __CLASS__, 'hide_locked_ui_elements' ] );
+                add_filter( 'plugin_action_links', [ __CLASS__, 'remove_plugin_action_links' ], 10, 2 );
+                add_filter( 'theme_action_links', [ __CLASS__, 'remove_theme_action_links' ], 10, 2 );
+                add_action( 'admin_bar_menu', [ __CLASS__, 'remove_admin_bar_updates' ], 999 );
             }
 
             // File upload filtering applies everywhere
@@ -154,11 +160,28 @@
 
             global $pagenow;
 
-            // Block direct access to update-core.php
-            if ( $pagenow === 'update-core.php' ) {
+            // Block direct access to update and installation pages
+            $blocked_pages = [
+                'update-core.php',
+                'plugin-install.php',
+                'theme-install.php',
+            ];
+
+            if ( in_array( $pagenow, $blocked_pages, true ) ) {
                 $exec_time = ( microtime( true ) - $timer_start ) * 1000;
-                prof_guardian_log( sprintf( '[Guardian] block_update_pages: %.2fms (blocked access)', $exec_time ) );
-                wp_die( __( 'Manual updates are currently disabled. Automatic updates are still active.', 'prof-designs-guardian' ), __( 'Updates Locked', 'prof-designs-guardian' ), [ 'response' => 403 ] );
+                prof_guardian_log( sprintf( '[Guardian] block_update_pages: %.2fms (blocked access to %s)', $exec_time, $pagenow ) );
+                
+                $support_email = Helpers::get_support_email();
+                $message = sprintf(
+                    __( 'Manual modifications are currently disabled for security. Automatic updates are still active.<br><br>If you need to make changes, please contact support: <strong>%s</strong>', 'prof-designs-guardian' ),
+                    esc_html( $support_email )
+                );
+                
+                wp_die(
+                    $message,
+                    __( 'Modifications Locked', 'prof-designs-guardian' ),
+                    [ 'response' => 403 ]
+                );
             }
 
             $exec_time = ( microtime( true ) - $timer_start ) * 1000;
@@ -393,6 +416,8 @@
 
             if ( $lock_modifications ) {
                 remove_submenu_page( 'index.php', 'update-core.php' );
+                remove_submenu_page( 'plugins.php', 'plugin-install.php' );  // Remove "Add New" under Plugins
+                remove_submenu_page( 'themes.php', 'theme-install.php' );    // Remove "Add New" under Appearance
             }
 
             $exec_time = ( microtime( true ) - $timer_start ) * 1000;
@@ -578,5 +603,145 @@ HTACCESS;
             }
 
             return $file;
+        }
+
+        /**
+         * Hide UI elements for locked modifications
+         *
+         * Hides "Add New" buttons, upload sections, and update action links
+         * when PROFDESIGNS_GUARDIAN_LOCK_MODS is enabled.
+         *
+         * @return void
+         *
+         * @since 0.8.0
+         */
+        public static function hide_locked_ui_elements(): void {
+            $lock_modifications = defined( 'PROFDESIGNS_GUARDIAN_LOCK_MODS' ) ? PROFDESIGNS_GUARDIAN_LOCK_MODS : true;
+
+            if ( ! $lock_modifications ) {
+                return;
+            }
+
+            // Hide "Add New" buttons, upload sections, and update links via CSS
+            echo '<style>
+                /* Hide Add New buttons for plugins and themes */
+                .page-title-action[href*="plugin-install.php"],
+                .page-title-action[href*="theme-install.php"],
+                a.upload-view-toggle,
+                .upload-plugin-wrap,
+                .upload-theme,
+                
+                /* Hide update available notices and update links */
+                .update-message,
+                .plugin-update-tr,
+                .theme-update-tr,
+                tr.plugin-update-tr,
+                tr.theme-update-tr,
+                .update-available,
+                
+                /* Hide bulk update checkboxes */
+                .plugins .check-column input[type="checkbox"],
+                .themes .check-column input[type="checkbox"],
+                
+                /* Hide "Update Available" notices in plugin/theme cards */
+                .plugin-card .update-now,
+                .theme-card .update-now,
+                
+                /* Hide update count bubbles */
+                #menu-plugins .update-plugins,
+                #menu-appearance .update-plugins,
+                
+                /* Hide "Select All" checkbox on plugin page */
+                #cb-select-all-1,
+                #cb-select-all-2,
+                
+                /* Hide bulk actions dropdown when it only contains delete/update */
+                .plugins .tablenav .bulkactions select option[value="update-selected"],
+                .themes .tablenav .bulkactions select option[value="update-selected"],
+                
+                /* Hide the entire upload plugin section */
+                .wrap .upload-plugin-wrap {
+                    display: none !important;
+                }
+            </style>';
+
+            prof_guardian_log( '[Guardian] UI elements hidden (modifications locked)' );
+        }
+
+        /**
+         * Remove plugin action links when modifications are locked
+         *
+         * Removes "Update now", "Delete", and other modification links
+         * from the plugin list table.
+         *
+         * @param array  $actions Plugin action links
+         * @param string $plugin_file Plugin file path
+         *
+         * @return array Filtered action links
+         *
+         * @since 0.8.0
+         */
+        public static function remove_plugin_action_links( array $actions, string $plugin_file ): array {
+            $lock_modifications = defined( 'PROFDESIGNS_GUARDIAN_LOCK_MODS' ) ? PROFDESIGNS_GUARDIAN_LOCK_MODS : true;
+
+            if ( ! $lock_modifications ) {
+                return $actions;
+            }
+
+            // Remove modification-related action links
+            unset( $actions['delete'] );
+            
+            // Note: "update" links are handled by the CSS hiding above
+            // We don't need to unset them here as they won't be visible
+
+            return $actions;
+        }
+
+        /**
+         * Remove theme action links when modifications are locked
+         *
+         * Removes "Delete" and other modification links from theme rows.
+         *
+         * @param array  $actions Theme action links
+         * @param object $theme   Theme object
+         *
+         * @return array Filtered action links
+         *
+         * @since 0.8.0
+         */
+        public static function remove_theme_action_links( array $actions, $theme ): array {
+            $lock_modifications = defined( 'PROFDESIGNS_GUARDIAN_LOCK_MODS' ) ? PROFDESIGNS_GUARDIAN_LOCK_MODS : true;
+
+            if ( ! $lock_modifications ) {
+                return $actions;
+            }
+
+            // Remove modification-related action links
+            unset( $actions['delete'] );
+
+            return $actions;
+        }
+
+        /**
+         * Remove update count from admin bar when modifications are locked
+         *
+         * Removes the "X Updates" item from the admin bar to avoid confusion
+         * when users can't manually update.
+         *
+         * @param \WP_Admin_Bar $wp_admin_bar WordPress admin bar object
+         *
+         * @return void
+         *
+         * @since 0.8.0
+         */
+        public static function remove_admin_bar_updates( $wp_admin_bar ): void {
+            $lock_modifications = defined( 'PROFDESIGNS_GUARDIAN_LOCK_MODS' ) ? PROFDESIGNS_GUARDIAN_LOCK_MODS : true;
+
+            if ( ! $lock_modifications ) {
+                return;
+            }
+
+            // Remove the updates menu item from admin bar
+            $wp_admin_bar->remove_node( 'updates' );
         }
     }
