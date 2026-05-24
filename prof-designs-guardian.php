@@ -3,7 +3,7 @@
      * Plugin Name: Prof Designs Guardian
      * Plugin URI: https://prof-designs.com/guardian
      * Description: A plugin that provides automatic updates, error handling, and health checks for your website.
-     * Version: 0.9.1
+     * Version: 0.9.2
      *
      * Author: Prof Designs
      * Author URI: https://profdesigns.com
@@ -73,10 +73,6 @@
         prof_guardian_log( '[Guardian] Setting up security capabilities...' );
         ProfDesigns\Guardian\Security::remove_editor_capabilities();
 
-        prof_guardian_log( '[Guardian] Protecting uploads directory...' );
-        ProfDesigns\Guardian\Security::protect_uploads_directory();
-        update_option( 'prof_guardian_uploads_setup', time(), false );
-
         // Mark setup as complete
         update_option( 'prof_guardian_setup_done', true, false );
 
@@ -87,8 +83,27 @@
         prof_guardian_log( '[Guardian] === INITIAL SETUP COMPLETE ===' );
     }
 
+    /**
+     * Protect uploads directory (safe for frontend context, no role/capability mutations)
+     *
+     * @since 0.9.1
+     */
+    function prof_designs_guardian_protect_uploads() {
+        // Check if protection has already been done
+        if ( get_option( 'prof_guardian_uploads_setup' ) ) {
+            return;
+        }
+
+        prof_guardian_log( '[Guardian] Protecting uploads directory...' );
+        ProfDesigns\Guardian\Security::protect_uploads_directory();
+        update_option( 'prof_guardian_uploads_setup', time(), false );
+        prof_guardian_log( '[Guardian] Uploads directory protection complete' );
+    }
+
     // Run setup on init to ensure it works even on sites without admin page loads
     add_action( 'init', 'prof_designs_guardian_setup', 5 );
+    // Run uploads protection on init (safe for frontend, ensures it happens ASAP)
+    add_action( 'init', 'prof_designs_guardian_protect_uploads', 5 );
 
     // Run capability restoration only on admin pages (admin-specific operation)
     if ( is_admin() ) {

@@ -33,6 +33,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - [x] `Security` Fixed privilege escalation vulnerability in Site Health capability grants (now requires admin role)
 - [x] `Security` Added missing PHP extensions to upload blocklist (pht, php8)
 - [x] `Security` Fixed log injection vulnerability in action parameter logging
+- [x] `Security` Removed site name from public health endpoint (information disclosure)
+- [x] `Security` Uploads protection now runs on first request (no admin delay)
 - [x] `Improved` HealthCheck class structure - all health functionality self-contained
 - [x] `Improved` Removed unnecessary instrumentation from capability filter (performance optimization)
 

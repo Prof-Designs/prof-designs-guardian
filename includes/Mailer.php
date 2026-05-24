@@ -30,13 +30,13 @@
          */
         public static function send( string $subject, array $data = [] ): void {
             // Determine recipient with fallback for fatal error scenarios
-            if ( defined( 'PROFDESIGNS_GUARDIAN_EMAIL' ) ) {
+            if ( defined( 'PROFDESIGNS_GUARDIAN_EMAIL' ) && PROFDESIGNS_GUARDIAN_EMAIL ) {
                 $to = PROFDESIGNS_GUARDIAN_EMAIL;
             } elseif ( function_exists( 'get_option' ) ) {
                 // WordPress is available, use admin email
                 $to = get_option( 'admin_email' );
             } else {
-                // Fatal error scenario: WordPress not fully loaded and no constant defined
+                // Fatal error scenario: WordPress not fully loaded and no usable constant defined
                 // Cannot reliably determine recipient email - abort
                 error_log( '[Guardian] ERROR: Cannot send email - WordPress not loaded and PROFDESIGNS_GUARDIAN_EMAIL not defined' );
 

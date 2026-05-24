@@ -60,7 +60,6 @@
             return [
                 'status'    => 'ok',
                 'timestamp' => time(),
-                'site'      => get_bloginfo( 'name' ),
             ];
         }
 
@@ -78,7 +77,7 @@
             // Use lightweight REST endpoint for faster health checks
             // Falls back to homepage if endpoint doesn't exist
             $health_url = rest_url( 'guardian/v1/health' );
-            
+
             // First attempt: standard check with SSL verification
             $response = wp_remote_get( $health_url, [
                 'timeout' => 10,
@@ -86,7 +85,11 @@
 
             // Fallback: retry with SSL verification disabled for self-signed certs
             // and increased timeout for slow shared hosting environments
-            if ( is_wp_error( $response ) && in_array( $response->get_error_code(), [ 'http_request_failed', 'ssl_verification_failed' ], true ) ) {
+            if ( is_wp_error( $response )
+                 && in_array( $response->get_error_code(), [
+                    'http_request_failed',
+                    'ssl_verification_failed',
+                ], true ) ) {
                 prof_guardian_log( '[Guardian] Retrying health check with relaxed SSL verification...' );
                 $response = wp_remote_get( $health_url, [
                     'timeout'   => 15,
@@ -101,7 +104,7 @@
 
                 // Track consecutive failures to avoid false alarms from loopback issues
                 $failure_count = (int) get_option( 'prof_guardian_health_failures', 0 );
-                $failure_count++;
+                $failure_count ++;
                 update_option( 'prof_guardian_health_failures', $failure_count, false );
 
                 prof_guardian_log( sprintf( '[Guardian] Consecutive failures: %d', $failure_count ) );
@@ -111,6 +114,7 @@
                 // reverse proxies, basic auth, or slow TLS handshakes
                 if ( $failure_count < 3 ) {
                     prof_guardian_log( '[Guardian] Waiting for more failures before alerting (reduces false positives)' );
+
                     return;
                 }
 
@@ -142,7 +146,7 @@
 
                 // Track consecutive 5xx errors
                 $failure_count = (int) get_option( 'prof_guardian_health_failures', 0 );
-                $failure_count++;
+                $failure_count ++;
                 update_option( 'prof_guardian_health_failures', $failure_count, false );
 
                 prof_guardian_log( sprintf( '[Guardian] Consecutive 5xx errors: %d', $failure_count ) );
@@ -151,6 +155,7 @@
                 // 5xx errors are more serious than transport failures, so lower threshold
                 if ( $failure_count < 2 ) {
                     prof_guardian_log( '[Guardian] Waiting for confirmation before alerting on 5xx error' );
+
                     return;
                 }
 
