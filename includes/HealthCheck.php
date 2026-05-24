@@ -19,7 +19,7 @@
      */
     class HealthCheck {
         /**
-         * Schedule hourly health checks
+         * Schedule hourly health checks and register REST endpoint
          *
          * @return void
          *
@@ -27,10 +27,41 @@
          */
         public static function init(): void {
             add_action( 'guardian_health_check', [ self::class, 'run' ] );
+            add_action( 'rest_api_init', [ self::class, 'register_endpoint' ] );
 
             if ( ! wp_next_scheduled( 'guardian_health_check' ) ) {
                 wp_schedule_event( time(), 'hourly', 'guardian_health_check' );
             }
+        }
+
+        /**
+         * Register lightweight health check endpoint
+         *
+         * @return void
+         *
+         * @since 0.8.2
+         */
+        public static function register_endpoint(): void {
+            register_rest_route( 'guardian/v1', '/health', [
+                'methods'             => 'GET',
+                'callback'            => [ self::class, 'endpoint_response' ],
+                'permission_callback' => '__return_true',
+            ] );
+        }
+
+        /**
+         * Health endpoint response
+         *
+         * @return array Health status data
+         *
+         * @since 0.8.2
+         */
+        public static function endpoint_response(): array {
+            return [
+                'status'    => 'ok',
+                'timestamp' => time(),
+                'site'      => get_bloginfo( 'name' ),
+            ];
         }
 
         /**
@@ -44,10 +75,14 @@
             $start_time = microtime( true );
             prof_guardian_log( '[Guardian] Health check starting...' );
 
-            // Add timeout to prevent hanging
+            // Use lightweight REST endpoint for faster health checks
+            // Falls back to homepage if endpoint doesn't exist
+            $health_url = rest_url( 'guardian/v1/health' );
+            
+            // Shorter timeout for lightweight endpoint
             // SSL verification enabled to catch certificate issues
-            $response = wp_remote_get( home_url(), [
-                'timeout' => 10,
+            $response = wp_remote_get( $health_url, [
+                'timeout' => 5,
             ] );
 
             $elapsed = round( ( microtime( true ) - $start_time ) * 1000, 2 );
