@@ -13,24 +13,19 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## TODO
 
-## 0.8.0 - 24.05.2026 (UI/UX Improvements)
-- [x] `Changed` Renamed `PROFDESIGNS_GUARDIAN_UPDATES` to `PROFDESIGNS_GUARDIAN_AUTO_UPDATES` for clarity
-- [x] `Added` UI hiding when `PROFDESIGNS_GUARDIAN_LOCK_MODS` is enabled (hides "Add New" buttons, upload sections, and update links)
-- [x] `Added` Menu item removal for "Add New" under Plugins and Themes when modifications are locked
-- [x] `Added` Direct page access blocking for plugin-install.php and theme-install.php pages
-- [x] `Added` Support email display in "Modifications Locked" error messages for easier contact
-- [x] `Added` `Helpers::get_support_email()` method to retrieve configured support email
-- [x] `Added` Admin bar update count removal when modifications are locked (prevents confusion)
-- [x] `Improved` Admin interface now clearly reflects locked state - elements you can't use are hidden
-- [x] `Improved` Reduced debug log noise by removing repetitive UI hiding and page blocking messages
-- [x] `Improved` One-time setup now runs on `init` instead of `admin_init` (works on headless sites)
-- [x] `Fixed` Removed duplicate health check scheduling (already handled by HealthCheck::init())
-- [x] `Security` Removed delete action links from plugins and themes when modifications are locked
-- [x] `Security` Enabled SSL certificate verification in health checks to detect certificate issues
+## 0.9.0 - 24.05.2026 (Production Testing)
+- [x] `Added` Lightweight REST API health check endpoint (`/wp-json/guardian/v1/health`)
+- [x] `Changed` Health check now uses REST endpoint instead of full homepage load
+- [x] `Changed` Health check timeout reduced from 10 seconds to 5 seconds
+- [x] `Changed` One-time setup now only runs in admin or CLI context (prevents frontend role mutations)
+- [x] `Fixed` Health check performance issue (reduced from ~2000ms to ~50-200ms)
+- [x] `Fixed` Mailer defensive fallback - guard `add_action()`/`remove_action()` calls for fatal error scenarios
+- [x] `Fixed` Added `wp_roles()` availability check before capability mutations
+- [x] `Security` Fixed privilege escalation vulnerability in Site Health capability grants (now requires admin role)
+- [x] `Improved` HealthCheck class structure - all health functionality self-contained
+- [x] `Improved` Removed unnecessary instrumentation from capability filter (performance optimization)
 
-**Breaking Change:** If you're using `PROFDESIGNS_GUARDIAN_UPDATES` constant in your `wp-config.php`, rename it to `PROFDESIGNS_GUARDIAN_AUTO_UPDATES`. The old constant name will no longer work.
-
-## 1.0.0 - 01.07.2026
+## 1.0.0 - TBA
 - [x] `Added` Automatic WordPress core, plugin, and theme updates
 - [x] `Added` Fatal PHP error monitoring with email notifications
 - [x] `Added` Hourly website health checks with timeout protection
@@ -39,7 +34,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - [x] `Added` Upload directory security hardening (.htaccess protection)
 - [x] `Added` Malicious file upload prevention
 - [x] `Added` Smart email alert throttling (prevents notification floods)
-- [x] `Added` PROFDESIGNS_GUARDIAN_UPDATES constant to control auto-updates
+- [x] `Added` PROFDESIGNS_GUARDIAN_AUTO_UPDATES constant to control auto-updates
 - [x] `Added` PROFDESIGNS_GUARDIAN_LOCK_MODS constant to control manual modifications
 - [x] `Added` PROFDESIGNS_GUARDIAN_EMAIL constant for custom alert email
 - [x] `Added` Logging for blocked file uploads (security monitoring)

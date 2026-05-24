@@ -114,6 +114,9 @@
          * CRITICAL: This must run at priority 0, BEFORE WordPress's
          * wp_maybe_grant_site_health_caps filter at priority 1
          *
+         * SECURITY: Only grants capabilities to administrators to prevent
+         * privilege escalation if non-admin users access Site Health pages
+         *
          * @param array    $allcaps All capabilities
          * @param array    $caps    Required capabilities
          * @param array    $args    Additional arguments
@@ -124,6 +127,12 @@
          * @since 1.0.1
          */
         public static function grant_site_health_caps( array $allcaps, array $caps, array $args, $user ): array {
+            // SECURITY: Only grant capabilities to administrators
+            // Without this check, any user reaching Site Health pages would get admin capabilities
+            if ( ! isset( $allcaps['manage_options'] ) || ! $allcaps['manage_options'] ) {
+                return $allcaps;
+            }
+
             // Directly grant the Site Health capability that WordPress checks for
             $allcaps['view_site_health_checks'] = true;
 
@@ -164,16 +173,9 @@
 
             if ( in_array( $pagenow, $blocked_pages, true ) ) {
                 $support_email = Helpers::get_support_email();
-                $message = sprintf(
-                    __( 'Manual modifications are currently disabled for security. Automatic updates are still active.<br><br>If you need to make changes, please contact support: <strong>%s</strong>', 'prof-designs-guardian' ),
-                    esc_html( $support_email )
-                );
-                
-                wp_die(
-                    $message,
-                    __( 'Modifications Locked', 'prof-designs-guardian' ),
-                    [ 'response' => 403 ]
-                );
+                $message       = sprintf( __( 'Manual modifications are currently disabled for security. Automatic updates are still active.<br><br>If you need to make changes, please contact support: <strong>%s</strong>', 'prof-designs-guardian' ), esc_html( $support_email ) );
+
+                wp_die( $message, __( 'Modifications Locked', 'prof-designs-guardian' ), [ 'response' => 403 ] );
             }
         }
 
@@ -195,11 +197,6 @@
          * @since 1.0.1
          */
         public static function filter_manual_update_caps( array $allcaps, array $caps, array $args, $user ): array {
-            static $call_count = 0;
-            static $slow_calls = 0;
-            $call_count ++;
-            $timer_start = microtime( true );
-
             // Check lock state directly from constant (defined() is essentially free)
             $lock_modifications = defined( 'PROFDESIGNS_GUARDIAN_LOCK_MODS' ) ? PROFDESIGNS_GUARDIAN_LOCK_MODS : true;
 
@@ -235,14 +232,7 @@
             $allcaps['delete_plugins']  = false;
             $allcaps['delete_themes']   = false;
 
-            $exec_time = ( microtime( true ) - $timer_start ) * 1000;
-            prof_guardian_log( sprintf( '[Guardian] Blocked manual update action: %s (%.2fms)', $_REQUEST['action'], $exec_time ) );
-
-            // Track unusually slow calls (> 20ms)
-            if ( $exec_time > 20 ) {
-                $slow_calls ++;
-                prof_guardian_log( sprintf( '[Guardian] filter_manual_update_caps: SLOW call #%d (%.2fms)', $slow_calls, $exec_time ) );
-            }
+            prof_guardian_log( sprintf( '[Guardian] Blocked manual update action: %s', $_REQUEST['action'] ) );
 
             return $allcaps;
         }
@@ -658,7 +648,7 @@ HTACCESS;
          * Removes "Update now", "Delete", and other modification links
          * from the plugin list table.
          *
-         * @param array  $actions Plugin action links
+         * @param array  $actions     Plugin action links
          * @param string $plugin_file Plugin file path
          *
          * @return array Filtered action links
@@ -674,7 +664,7 @@ HTACCESS;
 
             // Remove modification-related action links
             unset( $actions['delete'] );
-            
+
             // Note: "update" links are handled by the CSS hiding above
             // We don't need to unset them here as they won't be visible
 

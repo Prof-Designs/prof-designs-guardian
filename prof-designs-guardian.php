@@ -3,7 +3,7 @@
      * Plugin Name: Prof Designs Guardian
      * Plugin URI: https://prof-designs.com/guardian
      * Description: A plugin that provides automatic updates, error handling, and health checks for your website.
-     * Version: 0.8.2
+     * Version: 0.9.0
      *
      * Author: Prof Designs
      * Author URI: https://profdesigns.com
@@ -50,8 +50,20 @@
      * @since 1.0.0
      */
     function prof_designs_guardian_setup() {
+        // Only run in admin or CLI context to avoid mutating roles/filesystem on frontend requests
+        if ( ! is_admin() && ! ( defined( 'WP_CLI' ) && WP_CLI ) ) {
+            return;
+        }
+
         // Check if setup has already been done
         if ( get_option( 'prof_guardian_setup_done' ) ) {
+            return;
+        }
+
+        // Ensure wp_roles() is available before manipulating capabilities
+        if ( ! function_exists( 'wp_roles' ) ) {
+            prof_guardian_log( '[Guardian] WARNING: wp_roles() not available yet, deferring setup' );
+
             return;
         }
 

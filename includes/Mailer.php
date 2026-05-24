@@ -29,9 +29,6 @@
          * @since 1.0.0
          */
         public static function send( string $subject, array $data = [] ): void {
-            // Capture wp_mail errors temporarily for this send
-            add_action( 'wp_mail_failed', [ __CLASS__, 'log_mail_error' ], 10, 1 );
-
             // Determine recipient with fallback for fatal error scenarios
             if ( defined( 'PROFDESIGNS_GUARDIAN_EMAIL' ) ) {
                 $to = PROFDESIGNS_GUARDIAN_EMAIL;
@@ -42,7 +39,13 @@
                 // Fatal error scenario: WordPress not fully loaded and no constant defined
                 // Cannot reliably determine recipient email - abort
                 error_log( '[Guardian] ERROR: Cannot send email - WordPress not loaded and PROFDESIGNS_GUARDIAN_EMAIL not defined' );
+
                 return;
+            }
+
+            // Capture wp_mail errors temporarily for this send (only if WordPress is loaded)
+            if ( function_exists( 'add_action' ) ) {
+                add_action( 'wp_mail_failed', [ __CLASS__, 'log_mail_error' ], 10, 1 );
             }
 
             $siteUrl = home_url();
@@ -58,8 +61,10 @@
 
             $result = wp_mail( $to, '[' . parse_url( $siteUrl, PHP_URL_HOST ) . '] ' . $subject, $message );
 
-            // Remove the error handler after sending
-            remove_action( 'wp_mail_failed', [ __CLASS__, 'log_mail_error' ], 10 );
+            // Remove the error handler after sending (only if we added it)
+            if ( function_exists( 'remove_action' ) ) {
+                remove_action( 'wp_mail_failed', [ __CLASS__, 'log_mail_error' ], 10 );
+            }
 
             if ( $result ) {
                 prof_guardian_log( '[Guardian] Email sent successfully' );
@@ -151,12 +156,16 @@
             prof_guardian_log( '[Guardian] Sending test email to: ' . $to );
 
             // Capture wp_mail errors temporarily for this send
-            add_action( 'wp_mail_failed', [ __CLASS__, 'log_mail_error' ], 10, 1 );
+            if ( function_exists( 'add_action' ) ) {
+                add_action( 'wp_mail_failed', [ __CLASS__, 'log_mail_error' ], 10, 1 );
+            }
 
             $result = wp_mail( $to, $subject, $message );
 
             // Remove the error handler after sending
-            remove_action( 'wp_mail_failed', [ __CLASS__, 'log_mail_error' ], 10 );
+            if ( function_exists( 'remove_action' ) ) {
+                remove_action( 'wp_mail_failed', [ __CLASS__, 'log_mail_error' ], 10 );
+            }
 
             if ( $result ) {
                 prof_guardian_log( '[Guardian] Test email sent successfully' );
