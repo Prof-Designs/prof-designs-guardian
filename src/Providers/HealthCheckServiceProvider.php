@@ -72,13 +72,22 @@
         public function ensureScheduledHealthCheck(): void {
             // Prefer Action Scheduler if available so checks are visible in Scheduled Actions list.
             if ( function_exists( 'as_next_scheduled_action' ) && function_exists( 'as_schedule_recurring_action' ) ) {
+                // Keep only one backend: clear WP-Cron schedule when Action Scheduler is active.
+                wp_clear_scheduled_hook( self::HEALTH_CHECK_CRON_HOOK );
+
                 if ( as_next_scheduled_action( self::HEALTH_CHECK_AS_HOOK ) ) {
                     return;
                 }
 
-                as_schedule_recurring_action( time() + MINUTE_IN_SECONDS, HOUR_IN_SECONDS, self::HEALTH_CHECK_AS_HOOK, [], 'prof-designs-guardian' );
+                as_schedule_recurring_action( time()
+                                              + MINUTE_IN_SECONDS, HOUR_IN_SECONDS, self::HEALTH_CHECK_AS_HOOK, [], 'prof-designs-guardian' );
 
                 return;
+            }
+
+            // Keep only one backend: clear Action Scheduler schedule when falling back to WP-Cron.
+            if ( function_exists( 'as_unschedule_all_actions' ) ) {
+                as_unschedule_all_actions( self::HEALTH_CHECK_AS_HOOK, [], 'prof-designs-guardian' );
             }
 
             if ( wp_next_scheduled( self::HEALTH_CHECK_CRON_HOOK ) ) {

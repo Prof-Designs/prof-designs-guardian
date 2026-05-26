@@ -225,11 +225,12 @@
             }
 
             $blocked_caps = [
+                // Intentionally keep activate_plugins allowed so admins can open Plugins list
+                // and deactivate problematic plugins while install/update/delete remain locked.
                 'install_plugins',
                 'upload_plugins',
                 'update_plugins',
                 'delete_plugins',
-                'activate_plugins',
                 'install_themes',
                 'upload_themes',
                 'update_themes',

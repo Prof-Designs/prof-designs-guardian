@@ -52,6 +52,30 @@
         }
 
         /**
+         * Resolve notification recipient email.
+         *
+         * - If PROFDESIGNS_GUARDIAN_EMAIL is a valid non-empty string, use it.
+         * - Otherwise fall back to admin_email.
+         *
+         * @return string|null
+         */
+        public function getRecipientEmail(): ?string {
+            if ( defined( 'PROFDESIGNS_GUARDIAN_EMAIL' )
+                 && is_string( PROFDESIGNS_GUARDIAN_EMAIL )
+                 && PROFDESIGNS_GUARDIAN_EMAIL !== ''
+                 && is_email( PROFDESIGNS_GUARDIAN_EMAIL ) ) {
+                return PROFDESIGNS_GUARDIAN_EMAIL;
+            }
+
+            $admin_email = get_option( 'admin_email' );
+            if ( is_string( $admin_email ) && $admin_email !== '' && is_email( $admin_email ) ) {
+                return $admin_email;
+            }
+
+            return null;
+        }
+
+        /**
          * Send email with throttling
          *
          * @param string $to      Recipient email address
@@ -94,13 +118,7 @@
          * @return bool
          */
         public function sendTestEmail(): bool {
-            $to = get_option( 'admin_email' );
-            if ( defined( 'PROFDESIGNS_GUARDIAN_EMAIL' )
-                 && is_string( PROFDESIGNS_GUARDIAN_EMAIL )
-                 && PROFDESIGNS_GUARDIAN_EMAIL !== ''
-                 && is_email( PROFDESIGNS_GUARDIAN_EMAIL ) ) {
-                $to = PROFDESIGNS_GUARDIAN_EMAIL;
-            }
+            $to = $this->getRecipientEmail();
 
             if ( ! $to ) {
                 prof_guardian_log( '[Guardian] No admin email configured' );

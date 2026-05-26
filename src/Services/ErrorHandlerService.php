@@ -104,8 +104,8 @@
          * @return void
          */
         protected function sendErrorNotification( array $error ): void {
-            $admin_email = get_option( 'admin_email' );
-            if ( ! $admin_email ) {
+            $recipient_email = $this->mailer->getRecipientEmail();
+            if ( ! $recipient_email ) {
                 return;
             }
 
@@ -121,7 +121,7 @@
             $message .= "URL: "
                         . ( isset( $_SERVER['REQUEST_URI'] ) ? esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : 'N/A' );
 
-            $this->mailer->send( $admin_email, $subject, $message, 'fatal_error' );
+            $this->mailer->send( $recipient_email, $subject, $message, 'fatal_error' );
         }
 
         /**

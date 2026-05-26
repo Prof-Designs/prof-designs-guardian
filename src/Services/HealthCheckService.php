@@ -311,8 +311,8 @@
          * @return void
          */
         protected function sendFailureAlert( string $endpoint, string $error, int $failures ): void {
-            $admin_email = get_option( 'admin_email' );
-            if ( ! $admin_email ) {
+            $recipient_email = $this->mailer->getRecipientEmail();
+            if ( ! $recipient_email ) {
                 return;
             }
 
@@ -325,6 +325,6 @@
             $message .= "Time: " . current_time( 'mysql' ) . "\n\n";
             $message .= "Please investigate this issue as soon as possible.";
 
-            $this->mailer->send( $admin_email, $subject, $message, 'health_check' );
+            $this->mailer->send( $recipient_email, $subject, $message, 'health_check' );
         }
     }
