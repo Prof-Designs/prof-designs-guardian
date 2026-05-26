@@ -10,7 +10,6 @@
     namespace ProfDesigns\Guardian\Providers;
 
     use ProfDesigns\Guardian\Services\SecurityService;
-    use ProfDesigns\Guardian\Services\MailerService;
 
     /**
      * Class SetupServiceProvider
@@ -93,8 +92,9 @@
          * @return void
          */
         public function protectUploads(): void {
-            // Check if protection has already been done
-            if ( get_option( 'prof_guardian_uploads_setup' ) ) {
+            $last_setup = (int) get_option( 'prof_guardian_uploads_setup', 0 );
+            // Re-check daily in case files are removed/overwritten during restores or migrations.
+            if ( $last_setup && ( time() - $last_setup ) < DAY_IN_SECONDS ) {
                 return;
             }
 

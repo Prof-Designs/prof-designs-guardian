@@ -67,10 +67,22 @@
          */
         public function registerEndpoint(): void {
             register_rest_route( self::REST_NAMESPACE, self::REST_ROUTE, [
-                    'methods'             => 'GET',
-                    'callback'            => [ $this, 'handleHealthCheck' ],
-                    'permission_callback' => '__return_true',
-                ] );
+                'methods'             => 'GET',
+                'callback'            => [ $this, 'handleHealthCheck' ],
+                'permission_callback' => function ( \WP_REST_Request $request ): bool {
+                    // If a shared secret is configured, require it for unauthenticated monitoring.
+                    if ( defined( 'PROFDESIGNS_GUARDIAN_HEALTH_KEY' )
+                         && is_string( PROFDESIGNS_GUARDIAN_HEALTH_KEY )
+                         && PROFDESIGNS_GUARDIAN_HEALTH_KEY !== '' ) {
+                        $key = (string) $request->get_param( 'key' );
+
+                        return hash_equals( PROFDESIGNS_GUARDIAN_HEALTH_KEY, $key );
+                    }
+
+                    // Default: only authenticated admins can access detailed health data.
+                    return current_user_can( 'manage_options' );
+                },
+            ] );
         }
 
         /**
@@ -97,8 +109,8 @@
          * @return void
          */
         public function runScheduledHealthCheck(): void {
-            $started_at = microtime( true );
-            $status = $this->getHealthStatus();
+            $started_at  = microtime( true );
+            $status      = $this->getHealthStatus();
             $duration_ms = round( ( microtime( true ) - $started_at ) * 1000, 2 );
 
             if ( $status['status'] === 'healthy' ) {
@@ -113,7 +125,8 @@
             $error_message = 'Health check reported unhealthy status';
             foreach ( $status['checks'] as $name => $check ) {
                 if ( isset( $check['status'] ) && $check['status'] !== 'pass' ) {
-                    $check_message = isset( $check['message'] ) && is_string( $check['message'] ) ? $check['message'] : 'Unknown check failure';
+                    $check_message = isset( $check['message'] )
+                                     && is_string( $check['message'] ) ? $check['message'] : 'Unknown check failure';
                     $error_message = sprintf( '%s: %s', (string) $name, $check_message );
                     break;
                 }
@@ -192,8 +205,13 @@
          * @return array
          */
         protected function checkCoreFiles(): array {
+            $wp_config = file_exists( ABSPATH . 'wp-config.php' ) ? ABSPATH
+                                                                    . 'wp-config.php' : trailingslashit( dirname( ABSPATH ) )
+                                                                                        . 'wp-config.php';
+
             $core_files = [
                 ABSPATH . 'wp-config.php',
+                $wp_config,
                 ABSPATH . 'wp-load.php',
                 ABSPATH . 'wp-settings.php',
             ];

@@ -3,7 +3,7 @@
      * Plugin Name: Prof Designs Guardian
      * Plugin URI: https://prof-designs.com/guardian
      * Description: A plugin that provides automatic updates, error handling, and health checks for your website.
-     * Version: 0.10.1
+     * Version: 0.10.2
      *
      * Author: Prof Designs
      * Author URI: https://profdesigns.com
@@ -18,6 +18,14 @@
      */
 
     declare( strict_types=1 );
+
+    use ProfDesigns\Guardian\Application;
+    use ProfDesigns\Guardian\Providers\SetupServiceProvider;
+    use ProfDesigns\Guardian\Providers\SecurityServiceProvider;
+    use ProfDesigns\Guardian\Providers\AutoUpdateServiceProvider;
+    use ProfDesigns\Guardian\Providers\ErrorHandlerServiceProvider;
+    use ProfDesigns\Guardian\Providers\HealthCheckServiceProvider;
+    use ProfDesigns\Guardian\Providers\MailerServiceProvider;
 
     if ( ! defined( 'ABSPATH' ) ) {
         exit;
@@ -53,15 +61,6 @@
         // Manually load helper functions
         require_once __DIR__ . '/src/helpers.php';
     }
-
-    // Initialize the application
-    use ProfDesigns\Guardian\Application;
-    use ProfDesigns\Guardian\Providers\SetupServiceProvider;
-    use ProfDesigns\Guardian\Providers\SecurityServiceProvider;
-    use ProfDesigns\Guardian\Providers\AutoUpdateServiceProvider;
-    use ProfDesigns\Guardian\Providers\ErrorHandlerServiceProvider;
-    use ProfDesigns\Guardian\Providers\HealthCheckServiceProvider;
-    use ProfDesigns\Guardian\Providers\MailerServiceProvider;
 
     /**
      * Bootstrap the Guardian application

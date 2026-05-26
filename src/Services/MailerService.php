@@ -47,7 +47,8 @@
          * @return bool
          */
         public function isEnabled(): bool {
-            return ! defined( 'PROFDESIGNS_GUARDIAN_EMAIL' ) || PROFDESIGNS_GUARDIAN_EMAIL;
+            // Allow disabling emails by setting PROFDESIGNS_GUARDIAN_EMAIL to false.
+            return ! ( defined( 'PROFDESIGNS_GUARDIAN_EMAIL' ) && PROFDESIGNS_GUARDIAN_EMAIL === false );
         }
 
         /**
@@ -118,6 +119,7 @@
             $message   .= "You will receive email notifications for critical errors and failed updates.";
 
             return $this->send( $to, $subject, $message, 'activation' );
+        }
 
         /**
          * Check if email type is throttled
@@ -127,7 +129,8 @@
          * @return bool
          */
         protected function isThrottled( string $type ): bool {
-            $last_sent = get_option( "prof_guardian_email_last_{$type}", 0 );
+            $type      = sanitize_key( $type ) ?: 'general';
+            $last_sent = (int) get_option( "prof_guardian_email_last_{$type}", 0 );
 
             return ( time() - $last_sent ) < self::THROTTLE_WINDOW;
         }
@@ -140,6 +143,7 @@
          * @return void
          */
         protected function updateThrottle( string $type ): void {
+            $type = sanitize_key( $type ) ?: 'general';
             update_option( "prof_guardian_email_last_{$type}", time(), false );
         }
     }

@@ -181,6 +181,7 @@
          * @param callable|string $concrete Concrete implementation
          *
          * @return mixed
+         * @throws \ReflectionException
          */
         protected function build( $concrete ) {
             // If it's a closure, execute it
@@ -194,7 +195,23 @@
                     throw new \RuntimeException( "Class {$concrete} does not exist" );
                 }
 
-                return new $concrete( $this );
+                $ref  = new \ReflectionClass( $concrete );
+                $ctor = $ref->getConstructor();
+                // No constructor (or no required args) => instantiate normally.
+                if ( $ctor === null || $ctor->getNumberOfRequiredParameters() === 0 ) {
+                    return $ref->newInstance();
+                }
+                // Support the common case where the only required dependency is the Application container.
+                if ( $ctor->getNumberOfRequiredParameters() === 1 ) {
+                    $param = $ctor->getParameters()[0];
+                    $type  = $param->getType();
+                    if ( $type instanceof \ReflectionNamedType
+                         && ! $type->isBuiltin()
+                         && is_a( $this, $type->getName(), true ) ) {
+                        return $ref->newInstance( $this );
+                    }
+                }
+                throw new \RuntimeException( "Cannot build {$concrete}: unsupported constructor signature" );
             }
 
             return $concrete;

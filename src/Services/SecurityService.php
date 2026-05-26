@@ -92,6 +92,7 @@
             global $pagenow;
 
             $blocked_pages = [
+                'update-core.php',
                 'plugin-install.php',
                 'plugin-editor.php',
                 'theme-install.php',
@@ -179,13 +180,17 @@
          * @return array
          */
         public function grantSiteHealthCaps( array $allcaps, array $caps, array $args, \WP_User $user ): array {
-            if ( ! in_array( 'administrator', $user->roles, true ) ) {
+            // Only grant capabilities to admins (capability-based check to support custom roles).
+            if ( empty( $allcaps['manage_options'] ) ) {
                 return $allcaps;
             }
 
-            // Grant Site Health capabilities
+            // Grant Site Health capabilities.
             $allcaps['view_site_health_checks'] = true;
             $allcaps['install_plugins']         = true;
+            $allcaps['update_plugins']          = true;
+            $allcaps['update_themes']           = true;
+            $allcaps['update_core']             = true;
 
             return $allcaps;
         }
@@ -211,7 +216,7 @@
 
             foreach ( $suspicious_patterns as $pattern ) {
                 if ( preg_match( $pattern, $filename ) ) {
-                    $file['error'] = sprintf( __( 'File upload blocked: "%s" matches suspicious pattern.', 'prof-designs-guardian' ), esc_html( $filename ) );
+                    $file['error'] = sprintf( esc_html__( 'File upload blocked: "%s" matches suspicious pattern.', 'prof-designs-guardian' ), esc_html( $filename ) );
                     prof_guardian_log( "[Guardian] Blocked suspicious upload: {$filename}" );
                     break;
                 }
@@ -226,25 +231,35 @@
          * @return void
          */
         public function protectUploadsDirectory(): void {
-            $upload_dir    = wp_upload_dir();
+            $upload_dir = wp_upload_dir();
+            if ( ! empty( $upload_dir['error'] )
+                 || empty( $upload_dir['basedir'] )
+                 || ! is_dir( $upload_dir['basedir'] ) ) {
+                return;
+            }
+
             $htaccess_file = trailingslashit( $upload_dir['basedir'] ) . '.htaccess';
 
             if ( file_exists( $htaccess_file ) ) {
                 return;
             }
 
-            $htaccess_content = '# Protect uploads directory
-<Files *.php>
-    deny from all
-</Files>
-<Files *.phtml>
-    deny from all
-</Files>
-<Files *.suspected>
-    deny from all
-</Files>';
+            $htaccess_content = <<<'HTACCESS'
+ # Prevent PHP execution in uploads directory
+ <FilesMatch "\.(?i:php|phtml|suspected)$">
+   <IfModule !mod_authz_core.c>
+     Order allow,deny
+     Deny from all
+   </IfModule>
+   <IfModule mod_authz_core.c>
+     Require all denied
+   </IfModule>
+ </FilesMatch>
+ # Disable directory listing
+ Options -Indexes
+ HTACCESS;
 
-            $result = file_put_contents( $htaccess_file, $htaccess_content );
+            $result = @file_put_contents( $htaccess_file, $htaccess_content, LOCK_EX );
 
             if ( $result !== false ) {
                 prof_guardian_log( '[Guardian] Created .htaccess in uploads directory' );
@@ -259,6 +274,6 @@
          * @return bool
          */
         protected function isLockModsEnabled(): bool {
-            return defined( 'PROFDESIGNS_GUARDIAN_LOCK_MODS' ) && PROFDESIGNS_GUARDIAN_LOCK_MODS;
+            return ! defined( 'PROFDESIGNS_GUARDIAN_LOCK_MODS' ) || PROFDESIGNS_GUARDIAN_LOCK_MODS;
         }
     }
