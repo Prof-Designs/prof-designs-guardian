@@ -3,7 +3,7 @@
      * Plugin Name: Prof Designs Guardian
      * Plugin URI: https://prof-designs.com/guardian
      * Description: A plugin that provides automatic updates, error handling, and health checks for your website.
-     * Version: 0.9.2
+     * Version: 0.10.0
      *
      * Author: Prof Designs
      * Author URI: https://profdesigns.com
@@ -14,7 +14,7 @@
      * Requires PHP: 7.4
      *
      * @package ProfDesigns\Guardian
-     * @since   1.0.0
+     * @since   0.10.0
      */
 
     declare( strict_types=1 );
@@ -23,145 +23,83 @@
         exit;
     }
 
-    /**
-     * Safe error logging that won't cause output
-     *
-     * @param string $message Log message
-     *
-     * @return void
-     */
-    function prof_guardian_log( string $message ): void {
-        if ( defined( 'WP_DEBUG' ) && WP_DEBUG && defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
-            error_log( $message );
-        }
+    // Define plugin constants
+    define( 'PROF_GUARDIAN_VERSION', '0.10.0' );
+    define( 'PROF_GUARDIAN_PLUGIN_FILE', __FILE__ );
+    define( 'PROF_GUARDIAN_PLUGIN_DIR', __DIR__ );
+
+    // Load Composer autoloader
+    if ( file_exists( __DIR__ . '/vendor/autoload.php' ) ) {
+        require_once __DIR__ . '/vendor/autoload.php';
+    } else {
+        // Fallback: Load classes manually if Composer hasn't been run
+        spl_autoload_register( function ( $class ) {
+            $prefix   = 'ProfDesigns\\Guardian\\';
+            $base_dir = __DIR__ . '/src/';
+
+            $len = strlen( $prefix );
+            if ( strncmp( $prefix, $class, $len ) !== 0 ) {
+                return;
+            }
+
+            $relative_class = substr( $class, $len );
+            $file           = $base_dir . str_replace( '\\', '/', $relative_class ) . '.php';
+
+            if ( file_exists( $file ) ) {
+                require $file;
+            }
+        } );
+
+        // Manually load helper functions
+        require_once __DIR__ . '/src/helpers.php';
     }
 
-    require_once __DIR__ . '/includes/Helpers.php';
-    require_once __DIR__ . '/includes/Mailer.php';
-
-    require_once __DIR__ . '/includes/Security.php';
-    require_once __DIR__ . '/includes/AutoUpdates.php';
-    require_once __DIR__ . '/includes/ErrorHandler.php';
-    require_once __DIR__ . '/includes/HealthCheck.php';
-
-    /**
-     * One-time setup for MU plugin (runs on first load only)
-     *
-     * @since 1.0.0
-     */
-    function prof_designs_guardian_setup() {
-        // Only run in admin or CLI context to avoid mutating roles/filesystem on frontend requests
-        if ( ! is_admin() && ! ( defined( 'WP_CLI' ) && WP_CLI ) ) {
-            return;
-        }
-
-        // Check if setup has already been done
-        if ( get_option( 'prof_guardian_setup_done' ) ) {
-            return;
-        }
-
-        // Ensure wp_roles() is available before manipulating capabilities
-        if ( ! function_exists( 'wp_roles' ) ) {
-            prof_guardian_log( '[Guardian] WARNING: wp_roles() not available yet, deferring setup' );
-
-            return;
-        }
-
-        prof_guardian_log( '[Guardian] === INITIAL SETUP STARTING ===' );
-
-        // Run one-time security setup
-        prof_guardian_log( '[Guardian] Setting up security capabilities...' );
-        ProfDesigns\Guardian\Security::remove_editor_capabilities();
-
-        // Mark setup as complete
-        update_option( 'prof_guardian_setup_done', true, false );
-
-        // Schedule test email to run in 60 seconds (async to avoid blocking this request)
-        wp_schedule_single_event( time() + 60, 'guardian_send_test_email' );
-        prof_guardian_log( '[Guardian] Scheduled test email to send in 60 seconds' );
-
-        prof_guardian_log( '[Guardian] === INITIAL SETUP COMPLETE ===' );
-    }
+    // Initialize the application
+    use ProfDesigns\Guardian\Application;
+    use ProfDesigns\Guardian\Providers\SetupServiceProvider;
+    use ProfDesigns\Guardian\Providers\SecurityServiceProvider;
+    use ProfDesigns\Guardian\Providers\AutoUpdateServiceProvider;
+    use ProfDesigns\Guardian\Providers\ErrorHandlerServiceProvider;
+    use ProfDesigns\Guardian\Providers\HealthCheckServiceProvider;
+    use ProfDesigns\Guardian\Providers\MailerServiceProvider;
 
     /**
-     * Protect uploads directory (safe for frontend context, no role/capability mutations)
+     * Bootstrap the Guardian application
      *
-     * @since 0.9.1
+     * @return Application
      */
-    function prof_designs_guardian_protect_uploads() {
-        // Check if protection has already been done
-        if ( get_option( 'prof_guardian_uploads_setup' ) ) {
-            return;
+    function prof_guardian_bootstrap(): Application {
+        // Create application instance
+        $app = Application::getInstance( __DIR__ );
+
+        prof_guardian_log( '[Guardian] ============================================' );
+        prof_guardian_log( '[Guardian] Bootstrapping Guardian v' . PROF_GUARDIAN_VERSION );
+        prof_guardian_log( '[Guardian] ============================================' );
+
+        // Register service providers
+        $providers = [
+            MailerServiceProvider::class,        // Mailer (no dependencies)
+            SecurityServiceProvider::class,      // Security (no dependencies)
+            AutoUpdateServiceProvider::class,    // Auto-updates (no dependencies)
+            ErrorHandlerServiceProvider::class,  // Error handler (depends on Mailer)
+            HealthCheckServiceProvider::class,   // Health check (depends on Mailer)
+            SetupServiceProvider::class,         // Setup (depends on Security, Mailer)
+        ];
+
+        foreach ( $providers as $provider ) {
+            $app->register( $provider );
+            prof_guardian_log( '[Guardian] Registered: ' . $provider );
         }
 
-        prof_guardian_log( '[Guardian] Protecting uploads directory...' );
-        ProfDesigns\Guardian\Security::protect_uploads_directory();
-        update_option( 'prof_guardian_uploads_setup', time(), false );
-        prof_guardian_log( '[Guardian] Uploads directory protection complete' );
+        // Boot all service providers
+        $app->boot();
+        prof_guardian_log( '[Guardian] All service providers booted' );
+
+        prof_guardian_log( '[Guardian] Bootstrap complete' );
+        prof_guardian_log( '[Guardian] ============================================' );
+
+        return $app;
     }
 
-    // Run setup on init to ensure it works even on sites without admin page loads
-    add_action( 'init', 'prof_designs_guardian_setup', 5 );
-    // Run uploads protection on init (safe for frontend, ensures it happens ASAP)
-    add_action( 'init', 'prof_designs_guardian_protect_uploads', 5 );
-
-    // Run capability restoration only on admin pages (admin-specific operation)
-    if ( is_admin() ) {
-        // Only register restoration if it hasn't been done yet (optimization)
-        if ( ! get_option( 'prof_guardian_caps_restored_v2' ) ) {
-            add_action( 'admin_init', 'prof_designs_guardian_restore_capabilities', 3 );
-        }
-    }
-
-    /**
-     * One-time capability restoration for Site Health fix
-     *
-     * Restores install_plugins to administrator role if it was previously removed
-     * This fixes the "Sorry, you are not allowed" error on Site Health page
-     *
-     * @since 0.6.1
-     */
-    function prof_designs_guardian_restore_capabilities() {
-        // Check if restoration has already been done
-        if ( get_option( 'prof_guardian_caps_restored_v2' ) ) {
-            return;
-        }
-
-        prof_guardian_log( '[Guardian] Restoring install_plugins capability for Site Health compatibility...' );
-
-        $admin_role = get_role( 'administrator' );
-        if ( $admin_role && ! $admin_role->has_cap( 'install_plugins' ) ) {
-            $admin_role->add_cap( 'install_plugins' );
-            prof_guardian_log( '[Guardian] Restored install_plugins to administrator role' );
-        } else {
-            prof_guardian_log( '[Guardian] Administrator already has install_plugins capability' );
-        }
-
-        // Mark restoration as complete
-        update_option( 'prof_guardian_caps_restored_v2', true, false );
-
-        // Force capability update
-        ProfDesigns\Guardian\Security::remove_editor_capabilities();
-
-        prof_guardian_log( '[Guardian] Capability restoration complete' );
-    }
-
-    /**
-     * Send test email via cron (async)
-     *
-     * @return void
-     *
-     * @since 0.7.0
-     */
-    function prof_designs_guardian_send_test_email() {
-        ProfDesigns\Guardian\Mailer::send_test_email();
-    }
-
-    // Register test email cron handler
-    add_action( 'guardian_send_test_email', 'prof_designs_guardian_send_test_email' );
-
-    // Initialize plugin components
-    ProfDesigns\Guardian\Security::init();
-    ProfDesigns\Guardian\AutoUpdates::init();
-    ProfDesigns\Guardian\ErrorHandler::init();
-    ProfDesigns\Guardian\HealthCheck::init();
+    // Bootstrap the plugin
+    prof_guardian_bootstrap();

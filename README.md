@@ -1,6 +1,8 @@
 # Prof. Designs Guardian
 
-Lightweight WordPress monitoring and maintenance system.
+Lightweight WordPress monitoring and maintenance system built with modern Laravel-inspired architecture.
+
+**Version 0.10.0** introduces a complete architectural refactoring with service providers, dependency injection, and PSR-4 autoloading while maintaining PHP 7.4+ compatibility.
 
 ## Features
 - Automatic WordPress core updates
@@ -115,5 +117,34 @@ To ensure Guardian is always active and cannot be accidentally deactivated, inst
 ### Steps:
 1. Upload the `prof-designs-guardian` folder to `wp-content/mu-plugins/`
 2. Upload the `prof-designs-guardian-loader.php` file to `wp-content/mu-plugins/`
+3. (Optional) Run `composer install --no-dev` for optimized autoloading
+
+**Note**: Composer is optional. The plugin includes a fallback autoloader that works without Composer.
 
 The loader file is included in the plugin package for convenience.
+
+## Architecture (v0.10.0+)
+
+Guardian uses a modern Laravel/Sage-inspired architecture with:
+
+- **Service Providers**: Modular bootstrapping of features
+- **Dependency Injection**: Automatic resolution of service dependencies
+- **PSR-4 Autoloading**: Modern namespace-based class loading
+- **Application Container**: Centralized service management
+- **Single Responsibility**: Each service handles one specific concern
+
+### For Developers
+
+If you're extending Guardian or integrating it with other plugins:
+
+```php
+// Access the application container
+$app = guardian();
+
+// Resolve services
+$security = $app->make(\ProfDesigns\Guardian\Services\SecurityService::class);
+$mailer = $app->make(\ProfDesigns\Guardian\Services\MailerService::class);
+
+// Register custom services
+$app->singleton(MyCustomService::class);
+```
