@@ -58,6 +58,12 @@
         public function removeEditorMenus(): void {
             remove_submenu_page( 'themes.php', 'theme-editor.php' );
             remove_submenu_page( 'plugins.php', 'plugin-editor.php' );
+
+            if ( $this->isLockModsEnabled() ) {
+                remove_submenu_page( 'index.php', 'update-core.php' );
+                remove_submenu_page( 'plugins.php', 'plugin-install.php' );
+                remove_submenu_page( 'themes.php', 'theme-install.php' );
+            }
         }
 
         /**
@@ -196,6 +202,78 @@
         }
 
         /**
+         * Enforce lock mode by denying modification capabilities.
+         *
+         * This blocks direct requests to update/install endpoints even when UI links
+         * are hidden, by stripping capabilities at runtime.
+         *
+         * @param array    $allcaps All user capabilities
+         * @param array    $caps    Required capabilities
+         * @param array    $args    Capability check arguments
+         * @param \WP_User $user    Current user
+         *
+         * @return array
+         */
+        public function enforceLockModCapabilities( array $allcaps, array $caps, array $args, \WP_User $user ): array {
+            if ( ! $this->isLockModsEnabled() ) {
+                return $allcaps;
+            }
+
+            // Preserve Site Health compatibility when WordPress checks update caps.
+            if ( $this->isSiteHealthContext() ) {
+                return $allcaps;
+            }
+
+            $blocked_caps = [
+                'install_plugins',
+                'upload_plugins',
+                'update_plugins',
+                'delete_plugins',
+                'activate_plugins',
+                'install_themes',
+                'upload_themes',
+                'update_themes',
+                'delete_themes',
+                'update_core',
+            ];
+
+            foreach ( $blocked_caps as $cap ) {
+                $allcaps[ $cap ] = false;
+            }
+
+            return $allcaps;
+        }
+
+        /**
+         * Determine whether the current request is a Site Health context.
+         *
+         * @return bool
+         */
+        protected function isSiteHealthContext(): bool {
+            global $pagenow;
+
+            if ( $pagenow === 'site-health.php' ) {
+                return true;
+            }
+
+            if ( defined( 'DOING_AJAX' )
+                 && DOING_AJAX
+                 && isset( $_REQUEST['action'] )
+                 && is_string( $_REQUEST['action'] ) ) {
+                $health_actions = [
+                    'health-check',
+                    'health-check-loopback',
+                    'health-check-background-updates',
+                    'health-check-files-integrity',
+                ];
+
+                return in_array( $_REQUEST['action'], $health_actions, true );
+            }
+
+            return false;
+        }
+
+        /**
          * Block suspicious file uploads
          *
          * @param array $file Upload file data
@@ -232,13 +310,11 @@
          */
         public function protectUploadsDirectory(): void {
             $upload_dir = wp_upload_dir();
-            if ( ! empty( $upload_dir['error'] )
-                 || empty( $upload_dir['basedir'] )
-                 || ! is_dir( $upload_dir['basedir'] ) ) {
+            $basedir    = $upload_dir['basedir'] ?? '';
+            if ( ! $basedir || ! is_dir( $basedir ) ) {
                 return;
             }
-
-            $htaccess_file = trailingslashit( $upload_dir['basedir'] ) . '.htaccess';
+            $htaccess_file = trailingslashit( $basedir ) . '.htaccess';
 
             if ( file_exists( $htaccess_file ) ) {
                 return;

@@ -43,6 +43,9 @@
 
             // Only run admin-specific hooks in admin context
             if ( is_admin() ) {
+                // Enforce lock mode at capability level to block direct action endpoints.
+                add_filter( 'user_has_cap', [ $security, 'enforceLockModCapabilities' ], 1, 4 );
+
                 // Setup hooks on admin_init
                 add_action( 'admin_init', function () use ( $security ) {
                     $security->blockUpdatePages();

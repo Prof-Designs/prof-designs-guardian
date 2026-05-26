@@ -205,16 +205,29 @@
          * @return array
          */
         protected function checkCoreFiles(): array {
-            $wp_config = file_exists( ABSPATH . 'wp-config.php' ) ? ABSPATH
-                                                                    . 'wp-config.php' : trailingslashit( dirname( ABSPATH ) )
-                                                                                        . 'wp-config.php';
-
-            $core_files = [
+            $wp_config_paths = [
                 ABSPATH . 'wp-config.php',
-                $wp_config,
+                dirname( ABSPATH ) . '/wp-config.php',
+            ];
+            $core_files      = [
+                ABSPATH . 'wp-config.php',
                 ABSPATH . 'wp-load.php',
                 ABSPATH . 'wp-settings.php',
             ];
+
+            $wp_config_exists = false;
+            foreach ( $wp_config_paths as $path ) {
+                if ( file_exists( $path ) ) {
+                    $wp_config_exists = true;
+                    break;
+                }
+            }
+            if ( ! $wp_config_exists ) {
+                return [
+                    'status'  => 'fail',
+                    'message' => 'Missing core file: wp-config.php',
+                ];
+            }
 
             foreach ( $core_files as $file ) {
                 if ( ! file_exists( $file ) ) {
