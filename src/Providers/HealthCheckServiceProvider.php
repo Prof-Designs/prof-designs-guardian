@@ -22,6 +22,16 @@
      */
     class HealthCheckServiceProvider extends ServiceProvider {
         /**
+         * Health check cron hook name.
+         */
+        private const HEALTH_CHECK_CRON_HOOK = 'prof_guardian_run_health_check';
+
+        /**
+         * Health check Action Scheduler hook name.
+         */
+        private const HEALTH_CHECK_AS_HOOK = 'prof_guardian_run_health_check_action';
+
+        /**
          * Register services in the container
          *
          * @return void
@@ -44,6 +54,37 @@
             // Register REST API endpoint
             add_action( 'rest_api_init', [ $healthCheck, 'registerEndpoint' ] );
 
+            // Register scheduled health check callback.
+            add_action( self::HEALTH_CHECK_CRON_HOOK, [ $healthCheck, 'runScheduledHealthCheck' ] );
+            add_action( self::HEALTH_CHECK_AS_HOOK, [ $healthCheck, 'runScheduledHealthCheck' ] );
+
+            // Ensure a recurring hourly health check is scheduled.
+            add_action( 'init', [ $this, 'ensureScheduledHealthCheck' ], 20 );
+
             prof_guardian_log( '[Guardian] Health check initialized' );
+        }
+
+        /**
+         * Ensure the recurring health check event exists.
+         *
+         * @return void
+         */
+        public function ensureScheduledHealthCheck(): void {
+            // Prefer Action Scheduler if available so checks are visible in Scheduled Actions list.
+            if ( function_exists( 'as_next_scheduled_action' ) && function_exists( 'as_schedule_recurring_action' ) ) {
+                if ( as_next_scheduled_action( self::HEALTH_CHECK_AS_HOOK ) ) {
+                    return;
+                }
+
+                as_schedule_recurring_action( time() + MINUTE_IN_SECONDS, HOUR_IN_SECONDS, self::HEALTH_CHECK_AS_HOOK, [], 'prof-designs-guardian' );
+
+                return;
+            }
+
+            if ( wp_next_scheduled( self::HEALTH_CHECK_CRON_HOOK ) ) {
+                return;
+            }
+
+            wp_schedule_event( time() + MINUTE_IN_SECONDS, 'hourly', self::HEALTH_CHECK_CRON_HOOK );
         }
     }

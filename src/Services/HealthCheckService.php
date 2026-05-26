@@ -92,6 +92,41 @@
         }
 
         /**
+         * Run scheduled health check via WP-Cron.
+         *
+         * @return void
+         */
+        public function runScheduledHealthCheck(): void {
+            $started_at = microtime( true );
+            $status = $this->getHealthStatus();
+            $duration_ms = round( ( microtime( true ) - $started_at ) * 1000, 2 );
+
+            if ( $status['status'] === 'healthy' ) {
+                delete_option( 'prof_guardian_health_failures' );
+
+                // TODO: Remove this per-run success log after rollout verification period.
+                prof_guardian_log( sprintf( '[Guardian] Health check run: healthy (%.2fms)', $duration_ms ) );
+
+                return;
+            }
+
+            $error_message = 'Health check reported unhealthy status';
+            foreach ( $status['checks'] as $name => $check ) {
+                if ( isset( $check['status'] ) && $check['status'] !== 'pass' ) {
+                    $check_message = isset( $check['message'] ) && is_string( $check['message'] ) ? $check['message'] : 'Unknown check failure';
+                    $error_message = sprintf( '%s: %s', (string) $name, $check_message );
+                    break;
+                }
+            }
+
+            $endpoint = rest_url( self::REST_NAMESPACE . self::REST_ROUTE );
+            $this->recordFailure( $endpoint, $error_message );
+
+            // TODO: Remove this per-run status log after rollout verification period.
+            prof_guardian_log( sprintf( '[Guardian] Health check run: unhealthy (%.2fms) - %s', $duration_ms, $error_message ) );
+        }
+
+        /**
          * Get current health status
          *
          * @return array
