@@ -93,8 +93,15 @@
          * @return bool
          */
         public function sendTestEmail(): bool {
-            $admin_email = get_option( 'admin_email' );
-            if ( ! $admin_email ) {
+            $to = get_option( 'admin_email' );
+            if ( defined( 'PROFDESIGNS_GUARDIAN_EMAIL' )
+                 && is_string( PROFDESIGNS_GUARDIAN_EMAIL )
+                 && PROFDESIGNS_GUARDIAN_EMAIL !== ''
+                 && is_email( PROFDESIGNS_GUARDIAN_EMAIL ) ) {
+                $to = PROFDESIGNS_GUARDIAN_EMAIL;
+            }
+
+            if ( ! $to ) {
                 prof_guardian_log( '[Guardian] No admin email configured' );
 
                 return false;
@@ -110,8 +117,7 @@
             $message   .= "• Security hardening\n\n";
             $message   .= "You will receive email notifications for critical errors and failed updates.";
 
-            return $this->send( $admin_email, $subject, $message, 'activation' );
-        }
+            return $this->send( $to, $subject, $message, 'activation' );
 
         /**
          * Check if email type is throttled
