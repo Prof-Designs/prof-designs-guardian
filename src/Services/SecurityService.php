@@ -151,10 +151,11 @@
          * Remove theme action links when modifications are locked
          *
          * @param array $actions Theme action links
+         * @param mixed $theme   Theme context passed by WordPress filter
          *
          * @return array
          */
-        public function removeThemeActionLinks( array $actions ): array {
+        public function removeThemeActionLinks( array $actions, $theme = null ): array {
             if ( $this->isLockModsEnabled() ) {
                 unset( $actions['delete'] );
             }
@@ -290,6 +291,14 @@
 
             $normalized_name = strtolower( $filename );
             $tmp_name        = isset( $file['tmp_name'] ) && is_string( $file['tmp_name'] ) ? $file['tmp_name'] : '';
+
+            // Block .user.ini explicitly (multi-part extension is not caught by last-segment checks).
+            if ( $normalized_name === '.user.ini' || $normalized_name === 'user.ini' ) {
+                $file['error'] = sprintf( esc_html__( 'File upload blocked: "%s" is not allowed.', 'prof-designs-guardian' ), esc_html( $filename ) );
+                prof_guardian_log( "[Guardian] Blocked suspicious upload (user.ini): {$filename}" );
+
+                return $file;
+            }
 
             // Deny dangerous executable/script extensions outright.
             $blocked_extensions = [

@@ -2,8 +2,6 @@
 
 Lightweight WordPress monitoring and maintenance system built with modern Laravel-inspired architecture.
 
-**Version 0.10.0** introduces a complete architectural refactoring with service providers, dependency injection, and PSR-4 autoloading while maintaining PHP 7.4+ compatibility.
-
 ## Features
 - Automatic WordPress core updates
 - Automatic plugin updates

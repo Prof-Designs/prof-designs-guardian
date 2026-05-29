@@ -43,7 +43,7 @@
          * @return bool
          */
         public function isEnabled(): bool {
-            return ! defined( 'PROFDESIGNS_GUARDIAN_AUTO_UPDATES' ) || PROFDESIGNS_GUARDIAN_AUTO_UPDATES;
+            return ! defined( 'PROFDESIGNS_GUARDIAN_AUTO_UPDATES' ) || (bool) constant( 'PROFDESIGNS_GUARDIAN_AUTO_UPDATES' );
         }
 
         /**
@@ -170,12 +170,12 @@
         /**
          * Filter core update notification emails
          *
-         * @param bool  $send    Whether to send the email
-         * @param array $version WordPress version
+         * @param bool  $send   Whether to send the email
+         * @param mixed $update Core update payload (type varies by WP internals)
          *
          * @return bool
          */
-        public function filterCoreUpdateNotificationEmail( bool $send, array $version ): bool {
+        public function filterCoreUpdateNotificationEmail( bool $send, $update = null ): bool {
             // Suppress manual update notification emails
             return false;
         }

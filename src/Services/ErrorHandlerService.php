@@ -81,10 +81,11 @@
          * @param string $message  Error message
          * @param string $file     File where error occurred
          * @param int    $line     Line number where error occurred
+         * @param array  $context  Error context (PHP 7.4 compatibility)
          *
          * @return bool
          */
-        public function handleRecoverableError( int $severity, string $message, string $file, int $line ): bool {
+        public function handleRecoverableError( int $severity, string $message, string $file, int $line, array $context = [] ): bool {
             // Log critical errors
             $critical_errors = [ E_WARNING, E_USER_WARNING, E_DEPRECATED, E_USER_DEPRECATED ];
 
@@ -121,7 +122,9 @@
             $message .= "URL: "
                         . ( isset( $_SERVER['REQUEST_URI'] ) ? esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : 'N/A' );
 
-            $this->mailer->send( $recipient_email, $subject, $message, 'fatal_error' );
+            $error_key = md5( (string) ( $error['message'] ?? '' ) . (string) ( $error['file'] ?? '' ) . (string) ( $error['line'] ?? '' ) );
+
+            $this->mailer->send( $recipient_email, $subject, $message, 'fatal_error_' . $error_key );
         }
 
         /**
