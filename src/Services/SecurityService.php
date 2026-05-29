@@ -23,6 +23,23 @@
      */
     class SecurityService {
         /**
+         * Capabilities denied while lock mode is active.
+         */
+        protected const LOCK_BLOCKED_CAPS = [
+            // Intentionally keep activate_plugins allowed so admins can open Plugins list
+            // and deactivate problematic plugins while install/update/delete remain locked.
+            'install_plugins',
+            'upload_plugins',
+            'update_plugins',
+            'delete_plugins',
+            'install_themes',
+            'upload_themes',
+            'update_themes',
+            'delete_themes',
+            'update_core',
+        ];
+
+        /**
          * The application instance
          *
          * @var Application
@@ -220,27 +237,32 @@
                 return $allcaps;
             }
 
+            $requested_caps = array_filter( $caps, 'is_string' );
+            if ( empty( $requested_caps ) ) {
+                return $allcaps;
+            }
+
+            $requires_lock_filter = false;
+            foreach ( $requested_caps as $requested_cap ) {
+                if ( in_array( $requested_cap, self::LOCK_BLOCKED_CAPS, true ) ) {
+                    $requires_lock_filter = true;
+                    break;
+                }
+            }
+
+            if ( ! $requires_lock_filter ) {
+                return $allcaps;
+            }
+
             // Preserve Site Health compatibility when WordPress checks update caps.
             if ( $this->isSiteHealthContext() ) {
                 return $allcaps;
             }
 
-            $blocked_caps = [
-                // Intentionally keep activate_plugins allowed so admins can open Plugins list
-                // and deactivate problematic plugins while install/update/delete remain locked.
-                'install_plugins',
-                'upload_plugins',
-                'update_plugins',
-                'delete_plugins',
-                'install_themes',
-                'upload_themes',
-                'update_themes',
-                'delete_themes',
-                'update_core',
-            ];
-
-            foreach ( $blocked_caps as $cap ) {
-                $allcaps[ $cap ] = false;
+            foreach ( $requested_caps as $requested_cap ) {
+                if ( in_array( $requested_cap, self::LOCK_BLOCKED_CAPS, true ) ) {
+                    $allcaps[ $requested_cap ] = false;
+                }
             }
 
             return $allcaps;

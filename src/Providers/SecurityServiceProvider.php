@@ -36,7 +36,8 @@
          */
         public function boot(): void {
             /** @var SecurityService $security */
-            $security = $this->app->make( SecurityService::class );
+            $security          = $this->app->make( SecurityService::class );
+            $lock_mods_enabled = $this->isLockModsEnabled();
 
             // Disable file editors
             $security->disableFileEditors();
@@ -44,10 +45,16 @@
             // Only run admin-specific hooks in admin context
             if ( is_admin() ) {
                 // Enforce lock mode at capability level to block direct action endpoints.
-                add_filter( 'user_has_cap', [ $security, 'enforceLockModCapabilities' ], 1, 4 );
+                if ( $lock_mods_enabled ) {
+                    add_filter( 'user_has_cap', [ $security, 'enforceLockModCapabilities' ], 1, 4 );
+                }
 
                 // Setup hooks on admin_init
-                add_action( 'admin_init', function () use ( $security ) {
+                add_action( 'admin_init', function () use ( $security, $lock_mods_enabled ) {
+                    if ( ! $lock_mods_enabled ) {
+                        return;
+                    }
+
                     $security->blockUpdatePages();
                     $this->setupCapabilityFilters( $security );
                 }, 1 );
@@ -56,10 +63,12 @@
                 add_action( 'admin_menu', [ $security, 'removeEditorMenus' ], 999 );
 
                 // Hide locked UI elements
-                add_action( 'admin_head', [ $security, 'hideLockedUiElements' ] );
-                add_filter( 'plugin_action_links', [ $security, 'removePluginActionLinks' ], 10, 2 );
-                add_filter( 'theme_action_links', [ $security, 'removeThemeActionLinks' ], 10, 2 );
-                add_action( 'admin_bar_menu', [ $security, 'removeAdminBarUpdates' ], 999 );
+                if ( $lock_mods_enabled ) {
+                    add_action( 'admin_head', [ $security, 'hideLockedUiElements' ] );
+                    add_filter( 'plugin_action_links', [ $security, 'removePluginActionLinks' ], 10, 2 );
+                    add_filter( 'theme_action_links', [ $security, 'removeThemeActionLinks' ], 10, 2 );
+                    add_action( 'admin_bar_menu', [ $security, 'removeAdminBarUpdates' ], 999 );
+                }
             }
 
             // File upload filtering applies everywhere
@@ -98,5 +107,14 @@
                     add_filter( 'user_has_cap', [ $security, 'grantSiteHealthCaps' ], 0, 4 );
                 }
             }
+        }
+
+        /**
+         * Check if lock mode is enabled.
+         *
+         * @return bool
+         */
+        protected function isLockModsEnabled(): bool {
+            return ! defined( 'PROFDESIGNS_GUARDIAN_LOCK_MODS' ) || (bool) constant( 'PROFDESIGNS_GUARDIAN_LOCK_MODS' );
         }
     }
