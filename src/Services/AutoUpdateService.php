@@ -49,27 +49,36 @@
         /**
          * Enable automatic plugin updates
          *
+         * @param bool  $update Whether to update.
+         * @param mixed $item   Plugin update data (optional).
+         *
          * @return bool
          */
-        public function enablePluginUpdates(): bool {
+        public function enablePluginUpdates( bool $update, $item = null ): bool {
             return true;
         }
 
         /**
          * Enable automatic theme updates
          *
+         * @param bool  $update Whether to update.
+         * @param mixed $item   Theme update data (optional).
+         *
          * @return bool
          */
-        public function enableThemeUpdates(): bool {
+        public function enableThemeUpdates( bool $update, $item = null ): bool {
             return true;
         }
 
         /**
          * Enable automatic core updates
          *
+         * @param bool   $update Whether to update.
+         * @param string $type   Update type (optional).
+         *
          * @return bool
          */
-        public function enableCoreUpdates(): bool {
+        public function enableCoreUpdates( bool $update, string $type = '' ): bool {
             return true;
         }
 

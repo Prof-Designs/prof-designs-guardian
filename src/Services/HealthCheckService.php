@@ -210,7 +210,6 @@
                 dirname( ABSPATH ) . '/wp-config.php',
             ];
             $core_files      = [
-                ABSPATH . 'wp-config.php',
                 ABSPATH . 'wp-load.php',
                 ABSPATH . 'wp-settings.php',
             ];

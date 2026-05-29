@@ -282,22 +282,116 @@
          * @return array
          */
         public function blockSuspiciousUploads( array $file ): array {
-            $filename            = $file['name'] ?? '';
+            $filename = isset( $file['name'] ) && is_string( $file['name'] ) ? $file['name'] : '';
+
+            if ( $filename === '' ) {
+                return $file;
+            }
+
+            $normalized_name = strtolower( $filename );
+            $tmp_name        = isset( $file['tmp_name'] ) && is_string( $file['tmp_name'] ) ? $file['tmp_name'] : '';
+
+            // Deny dangerous executable/script extensions outright.
+            $blocked_extensions = [
+                'php',
+                'php3',
+                'php4',
+                'php5',
+                'php7',
+                'php8',
+                'phtml',
+                'pht',
+                'phar',
+                'phps',
+                'cgi',
+                'pl',
+                'py',
+                'jsp',
+                'asp',
+                'aspx',
+                'shtml',
+                'htaccess',
+                'user.ini',
+                'suspected',
+                'susp',
+            ];
+
+            $path_parts = explode( '.', $normalized_name );
+            $last_ext   = count( $path_parts ) > 1 ? (string) end( $path_parts ) : '';
+
+            if ( $last_ext !== '' && in_array( $last_ext, $blocked_extensions, true ) ) {
+                $file['error'] = sprintf( esc_html__( 'File upload blocked: "%s" uses a disallowed extension.', 'prof-designs-guardian' ), esc_html( $filename ) );
+                prof_guardian_log( "[Guardian] Blocked suspicious upload (extension): {$filename}" );
+
+                return $file;
+            }
+
+            // Block dangerous double extensions like payload.php.jpg.
+            if ( count( $path_parts ) > 2 ) {
+                $middle_parts = array_slice( $path_parts, 0, - 1 );
+                foreach ( $middle_parts as $part ) {
+                    if ( in_array( (string) $part, $blocked_extensions, true ) ) {
+                        $file['error'] = sprintf( esc_html__( 'File upload blocked: "%s" contains a suspicious double extension.', 'prof-designs-guardian' ), esc_html( $filename ) );
+                        prof_guardian_log( "[Guardian] Blocked suspicious upload (double extension): {$filename}" );
+
+                        return $file;
+                    }
+                }
+            }
+
+            // Block known web shell/malware naming patterns.
             $suspicious_patterns = [
-                '/\.php\d*$/i',           // .php, .php5, .php7, etc.
-                '/\.phtml$/i',            // .phtml
-                '/\.suspected$/i',        // .suspected
-                '/\.susp$/i',             // .susp
-                '/malware/i',             // malware keyword
-                '/c99shell/i',            // c99shell keyword
-                '/r57shell/i',            // r57shell keyword
+                '/malware/i',
+                '/c99shell/i',
+                '/r57shell/i',
+                '/shell[_-]?upload/i',
+                '/webshell/i',
+                '/cmd\./i',
+                '/\.php\./i',
+                '/\.phtml\./i',
+                '/\.phar\./i',
             ];
 
             foreach ( $suspicious_patterns as $pattern ) {
                 if ( preg_match( $pattern, $filename ) ) {
-                    $file['error'] = sprintf( esc_html__( 'File upload blocked: "%s" matches suspicious pattern.', 'prof-designs-guardian' ), esc_html( $filename ) );
-                    prof_guardian_log( "[Guardian] Blocked suspicious upload: {$filename}" );
-                    break;
+                    $file['error'] = sprintf( esc_html__( 'File upload blocked: "%s" matches a suspicious pattern.', 'prof-designs-guardian' ), esc_html( $filename ) );
+                    prof_guardian_log( "[Guardian] Blocked suspicious upload (pattern): {$filename}" );
+
+                    return $file;
+                }
+            }
+
+            // Validate extension and MIME using WordPress helper when possible.
+            if ( function_exists( 'wp_check_filetype_and_ext' ) && $tmp_name !== '' ) {
+                $checked_type = wp_check_filetype_and_ext( $tmp_name, $filename );
+
+                $checked_ext  = isset( $checked_type['ext'] )
+                                && is_string( $checked_type['ext'] ) ? strtolower( $checked_type['ext'] ) : '';
+                $checked_mime = isset( $checked_type['type'] )
+                                && is_string( $checked_type['type'] ) ? strtolower( $checked_type['type'] ) : '';
+
+                if ( $checked_ext !== '' && in_array( $checked_ext, $blocked_extensions, true ) ) {
+                    $file['error'] = sprintf( esc_html__( 'File upload blocked: "%s" failed extension validation.', 'prof-designs-guardian' ), esc_html( $filename ) );
+                    prof_guardian_log( "[Guardian] Blocked suspicious upload (wp_check ext): {$filename}" );
+
+                    return $file;
+                }
+
+                $blocked_mimes = [
+                    'application/x-php',
+                    'application/php',
+                    'text/x-php',
+                    'text/php',
+                    'application/x-httpd-php',
+                    'application/x-phar',
+                    'text/x-shellscript',
+                ];
+
+                if ( $checked_mime !== '' && in_array( $checked_mime, $blocked_mimes, true ) ) {
+                    $file['error'] = sprintf( esc_html__( 'File upload blocked: "%s" failed MIME validation.', 'prof-designs-guardian' ), esc_html( $filename ) );
+                    prof_guardian_log( "[Guardian] Blocked suspicious upload (wp_check mime): {$filename} ({$checked_mime})" );
+
+                    return $file;
                 }
             }
 
@@ -316,6 +410,12 @@
                 return;
             }
             $htaccess_file = trailingslashit( $basedir ) . '.htaccess';
+            $index_file    = trailingslashit( $basedir ) . 'index.php';
+
+            // Defense-in-depth: ensure index.php exists even if .htaccess is ignored (e.g. Nginx).
+            if ( ! file_exists( $index_file ) ) {
+                @file_put_contents( $index_file, '', LOCK_EX );
+            }
 
             if ( file_exists( $htaccess_file ) ) {
                 return;
@@ -323,7 +423,7 @@
 
             $htaccess_content = <<<'HTACCESS'
  # Prevent PHP execution in uploads directory
- <FilesMatch "\.(?i:php|phtml|suspected)$">
+ <FilesMatch "\.(?i:php\d*|phtml|pht|phar|suspected|susp)$">
    <IfModule !mod_authz_core.c>
      Order allow,deny
      Deny from all
@@ -351,6 +451,6 @@
          * @return bool
          */
         protected function isLockModsEnabled(): bool {
-            return ! defined( 'PROFDESIGNS_GUARDIAN_LOCK_MODS' ) || PROFDESIGNS_GUARDIAN_LOCK_MODS;
+            return ! defined( 'PROFDESIGNS_GUARDIAN_LOCK_MODS' ) || (bool) constant( 'PROFDESIGNS_GUARDIAN_LOCK_MODS' );
         }
     }
