@@ -461,12 +461,16 @@
             }
 
             if ( file_exists( $htaccess_file ) ) {
-                return;
+                $existing_content = (string) @file_get_contents( $htaccess_file );
+                if ( $existing_content !== '' && strpos( $existing_content, $marker ) !== false ) {
+                    return;
+                }
+                // If the file exists but doesn't contain our marker (overwritten/modified), rewrite it below.
             }
 
             $htaccess_content = <<<'HTACCESS'
  # Prevent PHP execution in uploads directory
- <FilesMatch "\.(?i:php\d*|phtml|pht|phar|suspected|susp)$">
+ <FilesMatch "\.(?i:php\d*|phps|phtml|pht|phar|suspected|susp)$">
    <IfModule !mod_authz_core.c>
      Order allow,deny
      Deny from all

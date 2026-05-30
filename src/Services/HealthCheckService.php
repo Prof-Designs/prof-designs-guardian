@@ -79,7 +79,10 @@
                     $health_key = defined( 'PROFDESIGNS_GUARDIAN_HEALTH_KEY' ) ? constant( 'PROFDESIGNS_GUARDIAN_HEALTH_KEY' ) : null;
 
                     if ( is_string( $health_key ) && $health_key !== '' ) {
-                        $key = (string) $request->get_param( 'key' );
+                        $header_key = $request->get_header( 'x-guardian-health-key' );
+                        $key        = ( is_string( $header_key )
+                                        && $header_key
+                                           !== '' ) ? $header_key : (string) $request->get_param( 'key' );
 
                         return hash_equals( $health_key, $key );
                     }
@@ -191,11 +194,11 @@
          */
         protected function checkDatabase( \wpdb $wpdb ): array {
             try {
-                $result = $wpdb->get_var( "SELECT 1" );
+                $result = (int) $wpdb->get_var( 'SELECT 1' );
 
                 return [
-                    'status'  => $result === '1' ? 'pass' : 'fail',
-                    'message' => $result === '1' ? 'Database connected' : 'Database connection failed',
+                    'status'  => $result === 1 ? 'pass' : 'fail',
+                    'message' => $result === 1 ? 'Database connected' : 'Database connection failed',
                 ];
             } catch ( \Exception $e ) {
                 prof_guardian_log( '[Guardian] Database health check error: ' . $e->getMessage() );
