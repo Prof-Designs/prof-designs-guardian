@@ -84,7 +84,7 @@
         }
 
         /**
-         * Remove plugin installation capabilities from editor role
+         * Remove plugin installation/management capabilities from editor role
          *
          * @return void
          */
@@ -459,6 +459,8 @@
                     prof_guardian_log( '[Guardian] Failed to create index.php in uploads directory' );
                 }
             }
+
+            $marker = '# Prevent PHP execution in uploads directory';
 
             if ( file_exists( $htaccess_file ) ) {
                 $existing_content = (string) @file_get_contents( $htaccess_file );

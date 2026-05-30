@@ -30,7 +30,7 @@
                 'Auto-updates enabled',
                 'Error handler initialized',
                 'Health check initialized',
-                '============================================',
+                '================================',
             ];
 
             foreach ( $suppressed_patterns as $pattern ) {
