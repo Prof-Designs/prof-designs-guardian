@@ -100,10 +100,12 @@
                 return false;
             }
 
-            // Send email
-            $result = wp_mail( $to, $subject, $message );
+            // Sanitize inputs (defense-in-depth against header injection / log injection).
             $safe_subject = str_replace( [ "\r", "\n" ], '', $subject );
             $safe_to      = str_replace( [ "\r", "\n" ], '', $to );
+
+            // Send email
+            $result = wp_mail( $safe_to, $safe_subject, $message );
 
             if ( $result ) {
                 $this->updateThrottle( $type );
