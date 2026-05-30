@@ -207,12 +207,8 @@
                 return $allcaps;
             }
 
-            // Grant Site Health capabilities.
+            // Grant only Site Health view capability for this request context.
             $allcaps['view_site_health_checks'] = true;
-            $allcaps['install_plugins']         = true;
-            $allcaps['update_plugins']          = true;
-            $allcaps['update_themes']           = true;
-            $allcaps['update_core']             = true;
 
             return $allcaps;
         }
@@ -282,6 +278,8 @@
                  && DOING_AJAX
                  && isset( $_REQUEST['action'] )
                  && is_string( $_REQUEST['action'] ) ) {
+                $action = sanitize_key( wp_unslash( $_REQUEST['action'] ) );
+
                 $health_actions = [
                     'health-check',
                     'health-check-loopback',
@@ -289,7 +287,7 @@
                     'health-check-files-integrity',
                 ];
 
-                return in_array( $_REQUEST['action'], $health_actions, true );
+                return $action !== '' && in_array( $action, $health_actions, true );
             }
 
             return false;

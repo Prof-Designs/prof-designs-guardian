@@ -240,15 +240,68 @@
          * @return array
          */
         protected function checkMemory(): array {
-            $memory_limit = ini_get( 'memory_limit' );
-            $memory_usage = memory_get_usage( true );
+            $memory_limit_raw   = ini_get( 'memory_limit' );
+            $memory_limit       = is_string( $memory_limit_raw ) ? trim( $memory_limit_raw ) : '';
+            $memory_usage_bytes = memory_get_usage( true );
+            $memory_limit_bytes = $this->parseMemoryLimitToBytes( $memory_limit );
+
+            if ( $memory_limit_bytes === null || $memory_limit_bytes <= 0 ) {
+                return [
+                    'status'       => 'pass',
+                    'message'      => 'Memory limit not enforced',
+                    'memory_limit' => $memory_limit !== '' ? $memory_limit : 'unknown',
+                    'memory_usage' => size_format( $memory_usage_bytes ),
+                ];
+            }
+
+            $usage_ratio = $memory_usage_bytes / $memory_limit_bytes;
+            $is_high     = $usage_ratio >= 0.90;
 
             return [
-                'status'       => 'pass',
-                'message'      => 'Memory usage normal',
-                'memory_limit' => $memory_limit,
-                'memory_usage' => size_format( $memory_usage ),
+                'status'         => $is_high ? 'fail' : 'pass',
+                'message'        => $is_high ? 'Memory usage is high' : 'Memory usage normal',
+                'memory_limit'   => $memory_limit,
+                'memory_usage'   => size_format( $memory_usage_bytes ),
+                'memory_percent' => round( $usage_ratio * 100, 2 ),
             ];
+        }
+
+        /**
+         * Parse an ini memory-limit string into bytes.
+         *
+         * @param string $memory_limit Ini memory limit value.
+         *
+         * @return int|null Null for unparseable values; -1 for unlimited.
+         */
+        protected function parseMemoryLimitToBytes( string $memory_limit ): ?int {
+            if ( $memory_limit === '' ) {
+                return null;
+            }
+
+            if ( $memory_limit === '-1' ) {
+                return - 1;
+            }
+
+            if ( ! preg_match( '/^([0-9]+)([KMG]?)$/i', $memory_limit, $matches ) ) {
+                return null;
+            }
+
+            $value = (int) $matches[1];
+            $unit  = strtoupper( $matches[2] );
+
+            if ( $unit === 'G' ) {
+                return $value * 1024 * 1024 * 1024;
+            }
+
+            if ( $unit === 'M' ) {
+                return $value * 1024 * 1024;
+            }
+
+            if ( $unit === 'K' ) {
+                return $value * 1024;
+            }
+
+            return $value;
         }
 
         /**

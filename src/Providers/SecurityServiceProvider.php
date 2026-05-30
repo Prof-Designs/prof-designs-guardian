@@ -98,13 +98,15 @@
                  && DOING_AJAX
                  && isset( $_REQUEST['action'] )
                  && is_string( $_REQUEST['action'] ) ) {
+                $action = sanitize_key( wp_unslash( $_REQUEST['action'] ) );
+
                 $health_actions = [
                     'health-check',
                     'health-check-loopback',
                     'health-check-background-updates',
                     'health-check-files-integrity',
                 ];
-                if ( in_array( $_REQUEST['action'], $health_actions, true ) ) {
+                if ( $action !== '' && in_array( $action, $health_actions, true ) ) {
                     add_filter( 'user_has_cap', [ $security, 'grantSiteHealthCaps' ], 0, 4 );
                 }
             }

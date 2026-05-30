@@ -177,16 +177,4 @@
             return false;
         }
 
-        /**
-         * Filter core update notification emails
-         *
-         * @param bool  $send   Whether to send the email
-         * @param mixed $update Core update payload (type varies by WP internals)
-         *
-         * @return bool
-         */
-        public function filterCoreUpdateNotificationEmail( bool $send, $update = null ): bool {
-            // Preserve WordPress default behavior unless explicitly overridden.
-            return $send;
-        }
     }

@@ -3,6 +3,10 @@
      * Plugin Name: Prof Designs Guardian Loader
      */
 
+    if ( ! defined( 'ABSPATH' ) || ! defined( 'WPMU_PLUGIN_DIR' ) ) {
+        exit;
+    }
+
     if ( defined( 'WP_INSTALLING' ) && WP_INSTALLING ) {
         return;
     }
