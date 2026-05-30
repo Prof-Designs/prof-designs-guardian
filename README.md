@@ -130,6 +130,7 @@ Guardian uses a modern Laravel/Sage-inspired architecture with:
 - **PSR-4 Autoloading**: Modern namespace-based class loading
 - **Application Container**: Centralized service management
 - **Single Responsibility**: Each service handles one specific concern
+- **Health Endpoint**: `/wp-json/prof-guardian/v1/health` (unauthenticated checks require `PROFDESIGNS_GUARDIAN_HEALTH_KEY`)
 
 ### For Developers
 
@@ -144,7 +145,7 @@ $security = $app->make(\ProfDesigns\Guardian\Services\SecurityService::class);
 $mailer = $app->make(\ProfDesigns\Guardian\Services\MailerService::class);
 
 // Register custom services
- $app->singleton(MyCustomService::class, function ($app) {
-     return new MyCustomService($app->make(SomeDependency::class));
- });
+$app->singleton(MyCustomService::class, function ($app) {
+   return new MyCustomService($app->make(SomeDependency::class));
+});
 ```

@@ -48,7 +48,7 @@
          */
         public function isEnabled(): bool {
             // Allow disabling emails by setting PROFDESIGNS_GUARDIAN_EMAIL to false.
-            return ! ( defined( 'PROFDESIGNS_GUARDIAN_EMAIL' ) && PROFDESIGNS_GUARDIAN_EMAIL === false );
+            return ! ( defined( 'PROFDESIGNS_GUARDIAN_EMAIL' ) && constant( 'PROFDESIGNS_GUARDIAN_EMAIL' ) === false );
         }
 
         /**
@@ -60,11 +60,12 @@
          * @return string|null
          */
         public function getRecipientEmail(): ?string {
-            if ( defined( 'PROFDESIGNS_GUARDIAN_EMAIL' )
-                 && is_string( PROFDESIGNS_GUARDIAN_EMAIL )
-                 && PROFDESIGNS_GUARDIAN_EMAIL !== ''
-                 && is_email( PROFDESIGNS_GUARDIAN_EMAIL ) ) {
-                return PROFDESIGNS_GUARDIAN_EMAIL;
+            $configured_email = defined( 'PROFDESIGNS_GUARDIAN_EMAIL' ) ? constant( 'PROFDESIGNS_GUARDIAN_EMAIL' ) : null;
+
+            if ( is_string( $configured_email )
+                 && $configured_email !== ''
+                 && is_email( $configured_email ) ) {
+                return $configured_email;
             }
 
             $admin_email = get_option( 'admin_email' );
@@ -101,17 +102,17 @@
 
             // Send email
             $result = wp_mail( $to, $subject, $message );
+            $safe_subject = str_replace( [ "\r", "\n" ], '', $subject );
+            $safe_to      = str_replace( [ "\r", "\n" ], '', $to );
 
             if ( $result ) {
                 $this->updateThrottle( $type );
-                prof_guardian_log( "[Guardian] Email sent: {$subject}" );
+                prof_guardian_log( "[Guardian] Email sent: {$safe_subject} (to: {$safe_to})" );
             } else {
                 // Always log mail failures (even when WP_DEBUG is off) since alerts won't reach admins.
-                $safe_subject = str_replace( [ "\r", "\n" ], '', $subject );
-                $safe_to      = str_replace( [ "\r", "\n" ], '', $to );
                 error_log( "[Guardian] CRITICAL: Failed to send email: {$safe_subject} (to: {$safe_to})" );
 
-                prof_guardian_log( "[Guardian] Failed to send email: {$subject}" );
+                prof_guardian_log( "[Guardian] Failed to send email: {$safe_subject} (to: {$safe_to})" );
             }
 
             return $result;

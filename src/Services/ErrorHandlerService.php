@@ -132,9 +132,15 @@
 
             $normalized_file = str_replace( '\\', '/', strtolower( $file ) );
             $site_root       = str_replace( '\\', '/', strtolower( ABSPATH ) );
+            $guardian_root   = defined( 'PROF_GUARDIAN_PLUGIN_DIR' )
+                ? (string) constant( 'PROF_GUARDIAN_PLUGIN_DIR' )
+                : dirname( __DIR__, 2 );
+            $guardian_root   = str_replace( '\\', '/', strtolower( rtrim( $guardian_root, '/\\' ) ) );
 
             // Always keep Guardian-origin warnings.
-            if ( strpos( $normalized_file, '/wp-content/mu-plugins/prof-designs-guardian/' ) !== false ) {
+            if ( $guardian_root !== ''
+                 && ( $normalized_file === $guardian_root
+                      || strpos( $normalized_file, $guardian_root . '/' ) === 0 ) ) {
                 return true;
             }
 
