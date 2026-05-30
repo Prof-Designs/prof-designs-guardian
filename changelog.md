@@ -11,19 +11,16 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `Deprecated` for soon-to-be removed features.
 - `Removed` for now removed features.
 
-## TODO
-- [ ] 'update now' hide on plugins list
-
-## 1.0.0 - 24.05.2026 (Production Testing)
+## 1.0.0 - 30.05.2026 (Production Testing)
+- [x] `Added` Laravel/Sage-inspired architecture with service providers and dependency injection
+- [x] `Added` PSR-4 autoloading and modern namespaced plugin structure
 - [x] `Added` Automatic WordPress core, plugin, and theme updates
 - [x] `Added` Fatal PHP error monitoring with email notifications
 - [x] `Added` REST API health check endpoint with consecutive failure tracking
-- [x] `Added` SSL verification fallback and timeout protection
+- [x] `Added` HTTP 503 health-check response for unhealthy status
 - [x] `Added` File editor protection (disables theme/plugin editors)
-- [x] `Added` Plugin and theme installation lockdown
+- [x] `Added` Plugin and theme installation lockdown with capability-level enforcement
 - [x] `Added` Upload directory security hardening and malicious file prevention
 - [x] `Added` Smart email alert throttling and auto-update filtering
-- [x] `Added` Security fixes (privilege escalation, log injection, information disclosure)
 - [x] `Added` Performance optimizations (health checks, capability filters)
-- [x] `Added` Configuration constants (AUTO_UPDATES, LOCK_MODS, EMAIL)
-- [x] `Added` Security logging and warning notifications
+- [x] `Added` Configuration constants and security logging notifications

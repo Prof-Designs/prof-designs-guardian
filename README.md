@@ -1,6 +1,6 @@
 # Prof. Designs Guardian
 
-Lightweight WordPress monitoring and maintenance system.
+Lightweight WordPress monitoring and maintenance plugin.
 
 ## Features
 - Automatic WordPress core updates
@@ -8,6 +8,7 @@ Lightweight WordPress monitoring and maintenance system.
 - Automatic theme updates
 - Fatal PHP error monitoring
 - Website health checks
+- Health endpoint with monitor-friendly HTTP status (200/503)
 - Smart email notifications
 - Anti-flood protection
 - File editor protection (blocks theme/plugin editors)
@@ -48,6 +49,19 @@ define('PROFDESIGNS_GUARDIAN_LOCK_MODS', false);
 // To DISABLE automatic updates (not recommended):
 // Default: true (auto-updates enabled)
 define('PROFDESIGNS_GUARDIAN_AUTO_UPDATES', false);
+
+// Optional shared key for unauthenticated health endpoint checks:
+// /wp-json/prof-guardian/v1/health?key=YOUR_KEY
+// Default: not set (health endpoint accessible only to admins)
+define('PROFDESIGNS_GUARDIAN_HEALTH_KEY', 'replace-with-strong-random-key');
+
+// Optional: include deprecated warnings in Guardian recoverable error handler logs
+// Default: false
+define('PROFDESIGNS_GUARDIAN_CAPTURE_DEPRECATED', true);
+
+// Optional: include third-party plugin/theme warnings in Guardian logs
+// Default: false (suppressed to reduce warning storms)
+define('PROFDESIGNS_GUARDIAN_LOG_THIRD_PARTY_WARNINGS', true);
 ```
 
 **Security Protection Levels:**
@@ -92,6 +106,8 @@ When `PROFDESIGNS_GUARDIAN_LOCK_MODS` is `true` (default), no admin user can:
 - Delete plugins or themes
 - Manually update plugins or themes via admin dashboard
 
+Admins can still deactivate active plugins for recovery/troubleshooting.
+
 When locked, the UI elements for these actions are automatically hidden to avoid confusion.
 
 This provides the same protection as `DISALLOW_FILE_MODS` but can be temporarily disabled for maintenance without deactivating the plugin.
@@ -115,5 +131,38 @@ To ensure Guardian is always active and cannot be accidentally deactivated, inst
 ### Steps:
 1. Upload the `prof-designs-guardian` folder to `wp-content/mu-plugins/`
 2. Upload the `prof-designs-guardian-loader.php` file to `wp-content/mu-plugins/`
+3. (Optional) Run `composer install --no-dev` for optimized autoloading
+
+**Note**: Composer is optional. The plugin includes a fallback autoloader that works without Composer.
 
 The loader file is included in the plugin package for convenience.
+
+## Architecture
+
+Guardian uses a modern Laravel/Sage-inspired architecture with:
+
+- **Service Providers**: Modular bootstrapping of features
+- **Dependency Injection**: Container-based service resolution (use closures for complex dependencies)
+- **PSR-4 Autoloading**: Modern namespace-based class loading
+- **Application Container**: Centralized service management
+- **Single Responsibility**: Each service handles one specific concern
+- **Health Endpoint**: `/wp-json/prof-guardian/v1/health` (unauthenticated checks require `PROFDESIGNS_GUARDIAN_HEALTH_KEY`)
+   Returns HTTP `200` when healthy, HTTP `503` when unhealthy.
+
+### For Developers
+
+If you're extending Guardian or integrating it with other plugins:
+
+```php
+// Access the application container
+$app = guardian();
+
+// Resolve services
+$security = $app->make(\ProfDesigns\Guardian\Services\SecurityService::class);
+$mailer = $app->make(\ProfDesigns\Guardian\Services\MailerService::class);
+
+// Register custom services
+$app->singleton(MyCustomService::class, function ($app) {
+   return new MyCustomService($app->make(SomeDependency::class));
+});
+```
