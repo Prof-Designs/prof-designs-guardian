@@ -118,6 +118,13 @@
          * @return void
          */
         protected function registerThemeActionLinkFilters( SecurityService $security ): void {
+            global $pagenow;
+
+            // Theme row action links are rendered on the themes list table.
+            if ( $pagenow !== 'themes.php' ) {
+                return;
+            }
+
             if ( ! function_exists( 'wp_get_themes' ) ) {
                 return;
             }

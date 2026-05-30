@@ -50,11 +50,6 @@ define('PROFDESIGNS_GUARDIAN_LOCK_MODS', false);
 // Default: true (auto-updates enabled)
 define('PROFDESIGNS_GUARDIAN_AUTO_UPDATES', false);
 
-// Optional shared key for unauthenticated health endpoint checks:
-// /wp-json/prof-guardian/v1/health?key=YOUR_KEY
-// Default: not set (health endpoint accessible only to admins)
-define('PROFDESIGNS_GUARDIAN_HEALTH_KEY', 'replace-with-strong-random-key');
-
 // Optional: include deprecated warnings in Guardian recoverable error handler logs
 // Default: false
 define('PROFDESIGNS_GUARDIAN_CAPTURE_DEPRECATED', true);
@@ -67,7 +62,7 @@ define('PROFDESIGNS_GUARDIAN_LOG_THIRD_PARTY_WARNINGS', true);
 **Security Protection Levels:**
 - **File editing** - Always blocked (theme/plugin editors disabled)
 - **Plugin/Theme modifications** - Blocked by default via `PROFDESIGNS_GUARDIAN_LOCK_MODS`
-- **Automatic updates** - Enabled by default via `PROFDESIGNS_GUARDIAN_AUTO_UPDATES`
+- **Automatic updates** - Enabled by default via `PROFDESIGNS_GUARDIAN_AUTO_UPDATES` (explicit WordPress/plugin opt-outs are respected)
 
 **Configuration Scenarios:**
 
@@ -146,7 +141,7 @@ Guardian uses a modern Laravel/Sage-inspired architecture with:
 - **PSR-4 Autoloading**: Modern namespace-based class loading
 - **Application Container**: Centralized service management
 - **Single Responsibility**: Each service handles one specific concern
-- **Health Endpoint**: `/wp-json/prof-guardian/v1/health` (unauthenticated checks require `PROFDESIGNS_GUARDIAN_HEALTH_KEY`)
+- **Health Endpoint**: `/wp-json/prof-guardian/v1/health` (authenticated administrators only)
    Returns HTTP `200` when healthy, HTTP `503` when unhealthy.
 
 ### For Developers

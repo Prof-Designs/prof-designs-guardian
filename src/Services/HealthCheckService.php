@@ -69,28 +69,9 @@
             register_rest_route( self::REST_NAMESPACE, self::REST_ROUTE, [
                 'methods'             => 'GET',
                 'callback'            => [ $this, 'handleHealthCheck' ],
-                'permission_callback' => function ( \WP_REST_Request $request ): bool {
-                    // Always allow authenticated admins.
-                    if ( current_user_can( 'manage_options' ) ) {
-                        return true;
-                    }
-
-                    // If a shared secret is configured, require it for unauthenticated monitoring.
-                    $health_key = defined( 'PROFDESIGNS_GUARDIAN_HEALTH_KEY' ) ? constant( 'PROFDESIGNS_GUARDIAN_HEALTH_KEY' ) : null;
-
-                    if ( is_string( $health_key ) && $health_key !== '' ) {
-                        $header_key = $request->get_header( 'x-guardian-health-key' );
-                        $key        = ( is_string( $header_key )
-                                        && $header_key !== '' ) ? $header_key : (string) $request->get_param( 'key' );
-
-                        if ( $key === '' ) {
-                            return false;
-                        }
-
-                        return hash_equals( $health_key, $key );
-                    }
-
-                    return false;
+                'permission_callback' => function ( \WP_REST_Request $_request ): bool {
+                    // Health endpoint is intentionally private in v1.
+                    return current_user_can( 'manage_options' );
                 },
             ] );
         }

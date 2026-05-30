@@ -33,6 +33,16 @@
         protected const THROTTLE_WINDOW = 86400;
 
         /**
+         * Prefix for fatal-error throttle types.
+         */
+        protected const FATAL_ERROR_THROTTLE_PREFIX = 'fatal_error_';
+
+        /**
+         * Option key storing fatal-error throttle timestamps keyed by hash.
+         */
+        protected const FATAL_ERROR_THROTTLE_OPTION = 'prof_guardian_email_last_fatal_errors';
+
+        /**
          * MailerService constructor
          *
          * @param Application $app Application instance
@@ -155,7 +165,19 @@
          * @return bool
          */
         protected function isThrottled( string $type ): bool {
-            $type      = sanitize_key( $type ) ?: 'general';
+            $type = sanitize_key( $type ) ?: 'general';
+
+            if ( strpos( $type, self::FATAL_ERROR_THROTTLE_PREFIX ) === 0 ) {
+                $error_hash = substr( $type, strlen( self::FATAL_ERROR_THROTTLE_PREFIX ) );
+                if ( $error_hash === '' ) {
+                    return false;
+                }
+
+                $throttle_map = $this->getPrunedFatalErrorThrottleMap();
+
+                return isset( $throttle_map[ $error_hash ] );
+            }
+
             $last_sent = (int) get_option( "prof_guardian_email_last_{$type}", 0 );
 
             return ( time() - $last_sent ) < self::THROTTLE_WINDOW;
@@ -170,6 +192,55 @@
          */
         protected function updateThrottle( string $type ): void {
             $type = sanitize_key( $type ) ?: 'general';
+
+            if ( strpos( $type, self::FATAL_ERROR_THROTTLE_PREFIX ) === 0 ) {
+                $error_hash = substr( $type, strlen( self::FATAL_ERROR_THROTTLE_PREFIX ) );
+                if ( $error_hash === '' ) {
+                    return;
+                }
+
+                $throttle_map                = $this->getPrunedFatalErrorThrottleMap( false );
+                $throttle_map[ $error_hash ] = time();
+                update_option( self::FATAL_ERROR_THROTTLE_OPTION, $throttle_map, false );
+
+                return;
+            }
+
             update_option( "prof_guardian_email_last_{$type}", time(), false );
+        }
+
+        /**
+         * Load and prune fatal-error throttle timestamps.
+         *
+         * @param bool $persist Whether to persist pruning changes.
+         *
+         * @return array<string,int>
+         */
+        protected function getPrunedFatalErrorThrottleMap( bool $persist = true ): array {
+            $raw_map = get_option( self::FATAL_ERROR_THROTTLE_OPTION, [] );
+            $map     = is_array( $raw_map ) ? $raw_map : [];
+            $now     = time();
+            $pruned  = [];
+
+            foreach ( $map as $hash => $timestamp ) {
+                if ( ! is_string( $hash ) || $hash === '' ) {
+                    continue;
+                }
+
+                $timestamp = (int) $timestamp;
+                if ( $timestamp > 0 && ( $now - $timestamp ) < self::THROTTLE_WINDOW ) {
+                    $pruned[ $hash ] = $timestamp;
+                }
+            }
+
+            if ( $persist && $pruned !== $map ) {
+                if ( empty( $pruned ) ) {
+                    delete_option( self::FATAL_ERROR_THROTTLE_OPTION );
+                } else {
+                    update_option( self::FATAL_ERROR_THROTTLE_OPTION, $pruned, false );
+                }
+            }
+
+            return $pruned;
         }
     }

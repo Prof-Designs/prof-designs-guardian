@@ -314,7 +314,7 @@
 
             // Block user.ini variants explicitly; multi-part suffixes are not caught by last-segment checks.
             if ( preg_match( '/(^|\.)user\.ini$/', $normalized_name ) ) {
-                $file['error'] = sprintf( esc_html__( 'File upload blocked: "%s" is not allowed.', 'prof-designs-guardian' ), esc_html( $filename ) );
+                $file['error'] = sprintf( __( 'File upload blocked: "%s" is not allowed.', 'prof-designs-guardian' ), $filename );
                 prof_guardian_log( "[Guardian] Blocked suspicious upload (user.ini): {$filename}" );
 
                 return $file;
@@ -359,7 +359,7 @@
             $last_ext   = count( $path_parts ) > 1 ? (string) end( $path_parts ) : '';
 
             if ( $last_ext !== '' && in_array( $last_ext, $blocked_extensions, true ) ) {
-                $file['error'] = sprintf( esc_html__( 'File upload blocked: "%s" uses a disallowed extension.', 'prof-designs-guardian' ), esc_html( $filename ) );
+                $file['error'] = sprintf( __( 'File upload blocked: "%s" uses a disallowed extension.', 'prof-designs-guardian' ), $filename );
                 prof_guardian_log( "[Guardian] Blocked suspicious upload (extension): {$filename}" );
 
                 return $file;
@@ -370,7 +370,7 @@
                 $middle_parts = array_slice( $path_parts, 0, - 1 );
                 foreach ( $middle_parts as $part ) {
                     if ( in_array( (string) $part, $blocked_extensions, true ) ) {
-                        $file['error'] = sprintf( esc_html__( 'File upload blocked: "%s" contains a suspicious double extension.', 'prof-designs-guardian' ), esc_html( $filename ) );
+                        $file['error'] = sprintf( __( 'File upload blocked: "%s" contains a suspicious double extension.', 'prof-designs-guardian' ), $filename );
                         prof_guardian_log( "[Guardian] Blocked suspicious upload (double extension): {$filename}" );
 
                         return $file;
@@ -393,7 +393,7 @@
 
             foreach ( $suspicious_patterns as $pattern ) {
                 if ( preg_match( $pattern, $filename ) ) {
-                    $file['error'] = sprintf( esc_html__( 'File upload blocked: "%s" matches a suspicious pattern.', 'prof-designs-guardian' ), esc_html( $filename ) );
+                    $file['error'] = sprintf( __( 'File upload blocked: "%s" matches a suspicious pattern.', 'prof-designs-guardian' ), $filename );
                     prof_guardian_log( "[Guardian] Blocked suspicious upload (pattern): {$filename}" );
 
                     return $file;
@@ -410,7 +410,7 @@
                                 && is_string( $checked_type['type'] ) ? strtolower( $checked_type['type'] ) : '';
 
                 if ( $checked_ext !== '' && in_array( $checked_ext, $blocked_extensions, true ) ) {
-                    $file['error'] = sprintf( esc_html__( 'File upload blocked: "%s" failed extension validation.', 'prof-designs-guardian' ), esc_html( $filename ) );
+                    $file['error'] = sprintf( __( 'File upload blocked: "%s" failed extension validation.', 'prof-designs-guardian' ), $filename );
                     prof_guardian_log( "[Guardian] Blocked suspicious upload (wp_check ext): {$filename}" );
 
                     return $file;
@@ -427,7 +427,7 @@
                 ];
 
                 if ( $checked_mime !== '' && in_array( $checked_mime, $blocked_mimes, true ) ) {
-                    $file['error'] = sprintf( esc_html__( 'File upload blocked: "%s" failed MIME validation.', 'prof-designs-guardian' ), esc_html( $filename ) );
+                    $file['error'] = sprintf( __( 'File upload blocked: "%s" failed MIME validation.', 'prof-designs-guardian' ), $filename );
                     prof_guardian_log( "[Guardian] Blocked suspicious upload (wp_check mime): {$filename} ({$checked_mime})" );
 
                     return $file;

@@ -45,8 +45,7 @@
         public function isEnabled(): bool {
             // Keep semantics consistent with other Guardian feature flags.
             return ! ( defined( 'PROFDESIGNS_GUARDIAN_AUTO_UPDATES' )
-                       && constant( 'PROFDESIGNS_GUARDIAN_AUTO_UPDATES' )
-                          === false );
+                       && constant( 'PROFDESIGNS_GUARDIAN_AUTO_UPDATES' ) === false );
         }
 
         /**
@@ -58,7 +57,7 @@
          * @return bool
          */
         public function enablePluginUpdates( $update, $item = null ): bool {
-            return true;
+            return $update === null || (bool) $update;
         }
 
         /**
@@ -70,7 +69,7 @@
          * @return bool
          */
         public function enableThemeUpdates( $update, $item = null ): bool {
-            return true;
+            return $update === null || (bool) $update;
         }
 
         /**
@@ -82,7 +81,7 @@
          * @return bool
          */
         public function enableCoreUpdates( $update, $type = '' ): bool {
-            return true;
+            return $update === null || (bool) $update;
         }
 
         /**

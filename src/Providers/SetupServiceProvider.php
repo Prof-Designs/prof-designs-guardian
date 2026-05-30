@@ -132,11 +132,6 @@
             // Mark restoration as complete
             update_option( 'prof_guardian_caps_restored_v2', true, false );
 
-            // Force capability update
-            /** @var SecurityService $security */
-            $security = $this->app->make( SecurityService::class );
-            $security->removeEditorCapabilities();
-
             prof_guardian_log( '[Guardian] Capability restoration complete' );
         }
     }
