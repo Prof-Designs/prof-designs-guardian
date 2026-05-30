@@ -95,8 +95,8 @@
          * @return bool
          */
         public function filterCoreUpdateEmail( bool $send, string $type, $core_update, $result ): bool {
-            // Always send failure emails
-            if ( $type === 'fail' ) {
+            // Always send failure and critical update emails
+            if ( $type === 'fail' || $type === 'critical' ) {
                 return true;
             }
 

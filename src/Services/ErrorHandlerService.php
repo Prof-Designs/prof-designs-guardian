@@ -89,11 +89,66 @@
             // Log critical errors
             $critical_errors = [ E_WARNING, E_USER_WARNING, E_DEPRECATED, E_USER_DEPRECATED ];
 
-            if ( in_array( $severity, $critical_errors, true ) ) {
+            if ( in_array( $severity, $critical_errors, true ) && $this->shouldLogRecoverableError( $severity, $message, $file ) ) {
                 prof_guardian_log( "[Guardian] {$this->getErrorType($severity)}: {$message} in {$file}:{$line}" );
             }
 
             // Don't interfere with WordPress error handling
+            return false;
+        }
+
+        /**
+         * Get the recoverable error mask for set_error_handler.
+         *
+         * @return int
+         */
+        public function getRecoverableErrorMask(): int {
+            $mask = E_WARNING | E_USER_WARNING;
+
+            // Deprecated notices are noisy on many production sites; keep opt-in.
+            if ( defined( 'PROFDESIGNS_GUARDIAN_CAPTURE_DEPRECATED' )
+                 && (bool) constant( 'PROFDESIGNS_GUARDIAN_CAPTURE_DEPRECATED' ) ) {
+                $mask |= E_DEPRECATED | E_USER_DEPRECATED;
+            }
+
+            return $mask;
+        }
+
+        /**
+         * Decide whether a recoverable error should be logged by Guardian.
+         *
+         * @param int    $severity Error severity
+         * @param string $message  Error message
+         * @param string $file     File where error occurred
+         *
+         * @return bool
+         */
+        protected function shouldLogRecoverableError( int $severity, string $message, string $file ): bool {
+            // Allow explicit override to keep previous broad logging behavior.
+            if ( defined( 'PROFDESIGNS_GUARDIAN_LOG_THIRD_PARTY_WARNINGS' )
+                 && (bool) constant( 'PROFDESIGNS_GUARDIAN_LOG_THIRD_PARTY_WARNINGS' ) ) {
+                return true;
+            }
+
+            $normalized_file = str_replace( '\\', '/', strtolower( $file ) );
+            $site_root       = str_replace( '\\', '/', strtolower( ABSPATH ) );
+
+            // Always keep Guardian-origin warnings.
+            if ( strpos( $normalized_file, '/wp-content/mu-plugins/prof-designs-guardian/' ) !== false ) {
+                return true;
+            }
+
+            // Keep WordPress core warnings (wp-admin/wp-includes) as actionable platform issues.
+            if ( strpos( $normalized_file, '/wp-admin/' ) !== false || strpos( $normalized_file, '/wp-includes/' ) !== false ) {
+                return true;
+            }
+
+            // Any warning clearly outside site root can still be relevant.
+            if ( $site_root !== '' && strpos( $normalized_file, $site_root ) === false ) {
+                return true;
+            }
+
+            // By default suppress third-party plugin/theme warning storms.
             return false;
         }
 

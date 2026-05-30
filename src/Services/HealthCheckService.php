@@ -71,12 +71,12 @@
                 'callback'            => [ $this, 'handleHealthCheck' ],
                 'permission_callback' => function ( \WP_REST_Request $request ): bool {
                     // If a shared secret is configured, require it for unauthenticated monitoring.
-                    if ( defined( 'PROFDESIGNS_GUARDIAN_HEALTH_KEY' )
-                         && is_string( PROFDESIGNS_GUARDIAN_HEALTH_KEY )
-                         && PROFDESIGNS_GUARDIAN_HEALTH_KEY !== '' ) {
+                    $health_key = defined( 'PROFDESIGNS_GUARDIAN_HEALTH_KEY' ) ? constant( 'PROFDESIGNS_GUARDIAN_HEALTH_KEY' ) : null;
+
+                    if ( is_string( $health_key ) && $health_key !== '' ) {
                         $key = (string) $request->get_param( 'key' );
 
-                        return hash_equals( PROFDESIGNS_GUARDIAN_HEALTH_KEY, $key );
+                        return hash_equals( $health_key, $key );
                     }
 
                     // Default: only authenticated admins can access detailed health data.
@@ -100,7 +100,9 @@
                 delete_option( 'prof_guardian_health_failures' );
             }
 
-            return new \WP_REST_Response( $status, 200 );
+            $http_status = ( $status['status'] === 'healthy' ) ? 200 : 503;
+
+            return new \WP_REST_Response( $status, $http_status );
         }
 
         /**
