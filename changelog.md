@@ -11,7 +11,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `Deprecated` for soon-to-be removed features.
 - `Removed` for now removed features.
 
-## 1.0.0 - 30.05.2026 (Production Testing)
+## 1.0.0 - 30.05.2026
 - [x] `Added` Laravel/Sage-inspired architecture with service providers and dependency injection
 - [x] `Added` PSR-4 autoloading and modern namespaced plugin structure
 - [x] `Added` Automatic WordPress core, plugin, and theme updates

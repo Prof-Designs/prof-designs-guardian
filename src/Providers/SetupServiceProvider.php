@@ -54,7 +54,7 @@
          */
         public function runSetup(): void {
             // Only run in admin or CLI context
-            if ( ! is_admin() && ! ( defined( 'WP_CLI' ) && WP_CLI ) ) {
+            if ( ! is_admin() && ! ( defined( 'WP_CLI' ) && (bool) constant( 'WP_CLI' ) ) ) {
                 return;
             }
 

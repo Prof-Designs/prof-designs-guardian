@@ -125,9 +125,6 @@
             if ( $status['status'] === 'healthy' ) {
                 delete_option( 'prof_guardian_health_failures' );
 
-                // TODO: Remove this per-run success log after rollout verification period.
-                prof_guardian_log( sprintf( '[Guardian] Health check run: healthy (%.2fms)', $duration_ms ) );
-
                 return;
             }
 
@@ -144,7 +141,6 @@
             $endpoint = rest_url( self::REST_NAMESPACE . self::REST_ROUTE );
             $this->recordFailure( $endpoint, $error_message );
 
-            // TODO: Remove this per-run status log after rollout verification period.
             prof_guardian_log( sprintf( '[Guardian] Health check run: unhealthy (%.2fms) - %s', $duration_ms, $error_message ) );
         }
 
