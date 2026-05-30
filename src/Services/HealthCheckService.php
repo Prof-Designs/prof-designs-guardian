@@ -81,8 +81,11 @@
                     if ( is_string( $health_key ) && $health_key !== '' ) {
                         $header_key = $request->get_header( 'x-guardian-health-key' );
                         $key        = ( is_string( $header_key )
-                                        && $header_key
-                                           !== '' ) ? $header_key : (string) $request->get_param( 'key' );
+                                        && $header_key !== '' ) ? $header_key : (string) $request->get_param( 'key' );
+
+                        if ( $key === '' ) {
+                            return false;
+                        }
 
                         return hash_equals( $health_key, $key );
                     }

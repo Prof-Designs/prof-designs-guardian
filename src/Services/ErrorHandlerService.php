@@ -35,6 +35,13 @@
         protected MailerService $mailer;
 
         /**
+         * Previously-registered PHP error handler.
+         *
+         * @var callable|null
+         */
+        protected $previousErrorHandler = null;
+
+        /**
          * ErrorHandlerService constructor
          *
          * @param Application   $app    Application instance
@@ -43,6 +50,28 @@
         public function __construct( Application $app, MailerService $mailer ) {
             $this->app    = $app;
             $this->mailer = $mailer;
+        }
+
+        /**
+         * Store a previously-registered PHP error handler for delegation.
+         *
+         * @param callable|null $handler Previous error handler callback.
+         *
+         * @return void
+         */
+        public function setPreviousErrorHandler( $handler ): void {
+            if ( $handler !== null && ! is_callable( $handler ) ) {
+                return;
+            }
+
+            if ( is_array( $handler )
+                 && isset( $handler[0], $handler[1] )
+                 && $handler[0] === $this
+                 && $handler[1] === 'handleRecoverableError' ) {
+                return;
+            }
+
+            $this->previousErrorHandler = $handler;
         }
 
         /**
@@ -86,15 +115,24 @@
          * @return bool
          */
         public function handleRecoverableError( int $severity, string $message, string $file, int $line, array $context = [] ): bool {
-            // Log critical errors
-            $critical_errors = [ E_WARNING, E_USER_WARNING, E_DEPRECATED, E_USER_DEPRECATED ];
+            $loggable_mask = $this->getRecoverableErrorMask();
 
-            if ( in_array( $severity, $critical_errors, true )
+            // Log only severities configured for Guardian monitoring.
+            if ( ( $severity & $loggable_mask ) !== 0
                  && $this->shouldLogRecoverableError( $severity, $message, $file ) ) {
                 prof_guardian_log( "[Guardian] {$this->getErrorType($severity)}: {$message} in {$file}:{$line}" );
             }
 
-            // Don't interfere with WordPress error handling
+            if ( is_callable( $this->previousErrorHandler ) ) {
+                try {
+                    return (bool) call_user_func( $this->previousErrorHandler, $severity, $message, $file, $line, $context );
+                } catch ( \Throwable $throwable ) {
+                    prof_guardian_log( '[Guardian] Previous error handler delegation failed: '
+                                       . $throwable->getMessage() );
+                }
+            }
+
+            // No previous handler: keep PHP internal handling behavior.
             return false;
         }
 
@@ -145,8 +183,7 @@
 
             // Keep WordPress core warnings (wp-admin/wp-includes) as actionable platform issues.
             if ( strpos( $normalized_file, '/wp-admin/' ) !== false
-                 || strpos( $normalized_file, '/wp-includes/' )
-                    !== false ) {
+                 || strpos( $normalized_file, '/wp-includes/' ) !== false ) {
                 return true;
             }
 

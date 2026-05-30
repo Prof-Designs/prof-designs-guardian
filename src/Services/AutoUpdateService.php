@@ -113,58 +113,66 @@
         /**
          * Filter plugin auto-update emails
          *
-         * Preserve emails when any update fails, suppress success emails
+         * WordPress passes: ($send, $type, $successful_updates, $failed_updates).
+         * Preserve emails when any update fails, suppress success emails.
          *
-         * @param bool  $send           Whether to send the email
-         * @param array $update_results Plugin auto-update results
+         * @param bool   $send               Whether to send the email.
+         * @param string $type               Update type provided by core ('plugin' or 'theme').
+         * @param array  $successful_updates Successful update result items.
+         * @param array  $failed_updates     Failed update result items.
          *
          * @return bool
          */
-        public function filterPluginUpdateEmail( bool $send, array $update_results ): bool {
-            foreach ( $update_results as $update_result ) {
+        public function filterPluginUpdateEmail( bool $send, string $type, array $successful_updates, array $failed_updates ): bool {
+            if ( ! empty( $failed_updates ) ) {
+                return true;
+            }
+
+            foreach ( $successful_updates as $update_result ) {
                 if ( ! is_array( $update_result ) ) {
                     continue;
                 }
 
-                // Check for failed updates
-                if ( ( isset( $update_result['result'] )
-                       && ( is_wp_error( $update_result['result'] )
-                            || $update_result['result'] === false ) )
-                     || ( isset( $update_result['successful'] ) && $update_result['successful'] === false ) ) {
+                // Extra guard: send email if a malformed successful item contains an error result.
+                if ( isset( $update_result['result'] )
+                     && ( is_wp_error( $update_result['result'] ) || $update_result['result'] === false ) ) {
                     return true;
                 }
             }
 
-            // No failures detected, suppress email
             return false;
         }
 
         /**
-         * Filter theme auto-update emails
+         * Filter theme auto-update emails.
          *
-         * Preserve emails when any update fails, suppress success emails
+         * WordPress passes: ($send, $type, $successful_updates, $failed_updates).
+         * Preserve emails when any update fails, suppress success emails.
          *
-         * @param bool  $send           Whether to send the email
-         * @param array $update_results Theme auto-update results
+         * @param bool   $send               Whether to send the email.
+         * @param string $type               Update type provided by core ('plugin' or 'theme').
+         * @param array  $successful_updates Successful update result items.
+         * @param array  $failed_updates     Failed update result items.
          *
          * @return bool
          */
-        public function filterThemeUpdateEmail( bool $send, array $update_results ): bool {
-            foreach ( $update_results as $update_result ) {
+        public function filterThemeUpdateEmail( bool $send, string $type, array $successful_updates, array $failed_updates ): bool {
+            if ( ! empty( $failed_updates ) ) {
+                return true;
+            }
+
+            foreach ( $successful_updates as $update_result ) {
                 if ( ! is_array( $update_result ) ) {
                     continue;
                 }
 
-                // Check for failed updates
-                if ( ( isset( $update_result['result'] )
-                       && ( is_wp_error( $update_result['result'] )
-                            || $update_result['result'] === false ) )
-                     || ( isset( $update_result['successful'] ) && $update_result['successful'] === false ) ) {
+                // Extra guard: send email if a malformed successful item contains an error result.
+                if ( isset( $update_result['result'] )
+                     && ( is_wp_error( $update_result['result'] ) || $update_result['result'] === false ) ) {
                     return true;
                 }
             }
 
-            // No failures detected, suppress email
             return false;
         }
 

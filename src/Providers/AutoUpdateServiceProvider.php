@@ -51,8 +51,8 @@
 
             // Filter update notification emails
             add_filter( 'auto_core_update_send_email', [ $autoUpdate, 'filterCoreUpdateEmail' ], 10, 4 );
-            add_filter( 'auto_plugin_update_send_email', [ $autoUpdate, 'filterPluginUpdateEmail' ], 10, 2 );
-            add_filter( 'auto_theme_update_send_email', [ $autoUpdate, 'filterThemeUpdateEmail' ], 10, 2 );
+            add_filter( 'auto_plugin_update_send_email', [ $autoUpdate, 'filterPluginUpdateEmail' ], 10, 4 );
+            add_filter( 'auto_theme_update_send_email', [ $autoUpdate, 'filterThemeUpdateEmail' ], 10, 4 );
             add_filter( 'send_core_update_notification_email', [
                 $autoUpdate,
                 'filterCoreUpdateNotificationEmail',

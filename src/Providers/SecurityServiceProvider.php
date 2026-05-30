@@ -37,7 +37,7 @@
         public function boot(): void {
             /** @var SecurityService $security */
             $security          = $this->app->make( SecurityService::class );
-            $lock_mods_enabled = $this->isLockModsEnabled();
+            $lock_mods_enabled = $security->isLockModsEnabled();
 
             // Disable file editors
             $security->disableFileEditors();
@@ -57,6 +57,7 @@
 
                     $security->blockUpdatePages();
                     $this->setupCapabilityFilters( $security );
+                    $this->registerThemeActionLinkFilters( $security );
                 }, 1 );
 
                 // Remove editor menus
@@ -110,11 +111,24 @@
         }
 
         /**
-         * Check if lock mode is enabled.
+         * Register per-theme action link filters for environments using stylesheet-specific hooks.
          *
-         * @return bool
+         * @param SecurityService $security Security service instance
+         *
+         * @return void
          */
-        protected function isLockModsEnabled(): bool {
-            return ! defined( 'PROFDESIGNS_GUARDIAN_LOCK_MODS' ) || (bool) constant( 'PROFDESIGNS_GUARDIAN_LOCK_MODS' );
+        protected function registerThemeActionLinkFilters( SecurityService $security ): void {
+            if ( ! function_exists( 'wp_get_themes' ) ) {
+                return;
+            }
+
+            foreach ( wp_get_themes() as $stylesheet => $theme ) {
+                if ( ! is_string( $stylesheet ) || $stylesheet === '' ) {
+                    continue;
+                }
+
+                add_filter( "theme_action_links_{$stylesheet}", [ $security, 'removeThemeActionLinks' ], 10, 2 );
+            }
         }
+
     }

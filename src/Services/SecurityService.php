@@ -499,7 +499,7 @@
          *
          * @return bool
          */
-        protected function isLockModsEnabled(): bool {
+        public function isLockModsEnabled(): bool {
             return ! defined( 'PROFDESIGNS_GUARDIAN_LOCK_MODS' ) || (bool) constant( 'PROFDESIGNS_GUARDIAN_LOCK_MODS' );
         }
     }

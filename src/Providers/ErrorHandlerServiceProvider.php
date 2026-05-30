@@ -44,8 +44,9 @@
             // Register shutdown handler for fatal errors
             register_shutdown_function( [ $errorHandler, 'handleFatalError' ] );
 
-            // Register error handler for recoverable errors
-            set_error_handler( [ $errorHandler, 'handleRecoverableError' ], $errorHandler->getRecoverableErrorMask() );
+            // Register for all severities, then let the service decide what to log and delegate.
+            $previous_error_handler = set_error_handler( [ $errorHandler, 'handleRecoverableError' ], E_ALL );
+            $errorHandler->setPreviousErrorHandler( $previous_error_handler );
 
             prof_guardian_log( '[Guardian] Error handler initialized' );
         }
