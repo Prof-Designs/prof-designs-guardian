@@ -17,7 +17,7 @@
      * Handles email notifications with rate limiting
      *
      * @package ProfDesigns\Guardian\Services
-     * @since   0.10.0
+     * @since   1.0.0
      */
     class MailerService {
         /**

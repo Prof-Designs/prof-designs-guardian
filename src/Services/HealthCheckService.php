@@ -17,7 +17,7 @@
      * Monitors site health via REST API endpoint
      *
      * @package ProfDesigns\Guardian\Services
-     * @since   0.10.0
+     * @since   1.0.0
      */
     class HealthCheckService {
         /**

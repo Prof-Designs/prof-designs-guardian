@@ -17,7 +17,7 @@
      * Registers and bootstraps automatic update features
      *
      * @package ProfDesigns\Guardian\Providers
-     * @since   0.10.0
+     * @since   1.0.0
      */
     class AutoUpdateServiceProvider extends ServiceProvider {
         /**
@@ -51,8 +51,7 @@
 
             // Filter update notification emails
             add_filter( 'auto_core_update_send_email', [ $autoUpdate, 'filterCoreUpdateEmail' ], 10, 4 );
-            add_filter( 'auto_plugin_update_send_email', [ $autoUpdate, 'filterPluginUpdateEmail' ], 10, 4 );
-            add_filter( 'auto_theme_update_send_email', [ $autoUpdate, 'filterThemeUpdateEmail' ], 10, 4 );
+            add_filter( 'auto_plugin_theme_update_email', [ $autoUpdate, 'filterPluginThemeUpdateEmail' ], 10, 4 );
 
             prof_guardian_log( '[Guardian] Auto-updates enabled' );
         }

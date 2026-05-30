@@ -19,7 +19,7 @@
      * blocks both editing AND updates.
      *
      * @package ProfDesigns\Guardian\Services
-     * @since   0.10.0
+     * @since   1.0.0
      */
     class SecurityService {
         /**

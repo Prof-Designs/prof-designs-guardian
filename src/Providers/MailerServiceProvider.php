@@ -17,7 +17,7 @@
      * Registers and bootstraps mailer features
      *
      * @package ProfDesigns\Guardian\Providers
-     * @since   0.10.0
+     * @since   1.0.0
      */
     class MailerServiceProvider extends ServiceProvider {
         /**

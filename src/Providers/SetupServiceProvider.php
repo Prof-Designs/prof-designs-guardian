@@ -17,7 +17,7 @@
      * Handles one-time setup tasks and initialization
      *
      * @package ProfDesigns\Guardian\Providers
-     * @since   0.10.0
+     * @since   1.0.0
      */
     class SetupServiceProvider extends ServiceProvider {
         /**

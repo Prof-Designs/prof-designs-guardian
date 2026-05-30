@@ -13,7 +13,7 @@
      * Interface ServiceProvider
      *
      * @package ProfDesigns\Guardian\Contracts
-     * @since   0.10.0
+     * @since   1.0.0
      */
     interface ServiceProvider {
         /**

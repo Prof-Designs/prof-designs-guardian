@@ -18,7 +18,7 @@
      * Can be disabled via PROFDESIGNS_GUARDIAN_AUTO_UPDATES constant.
      *
      * @package ProfDesigns\Guardian\Services
-     * @since   0.10.0
+     * @since   1.0.0
      */
     class AutoUpdateService {
         /**
@@ -109,6 +109,31 @@
 
             // Suppress success emails
             return false;
+        }
+
+        /**
+         * Filter plugin/theme auto-update emails from the shared core filter.
+         *
+         * WordPress uses a single filter for both types:
+         * `auto_plugin_theme_update_email( $enabled, $type, $successful_updates, $failed_updates )`.
+         *
+         * @param bool   $enabled            Whether to send the email.
+         * @param string $type               Update type provided by core ('plugin' or 'theme').
+         * @param array  $successful_updates Successful update result items.
+         * @param array  $failed_updates     Failed update result items.
+         *
+         * @return bool
+         */
+        public function filterPluginThemeUpdateEmail( bool $enabled, string $type, array $successful_updates, array $failed_updates ): bool {
+            if ( $type === 'plugin' ) {
+                return $this->filterPluginUpdateEmail( $enabled, $type, $successful_updates, $failed_updates );
+            }
+
+            if ( $type === 'theme' ) {
+                return $this->filterThemeUpdateEmail( $enabled, $type, $successful_updates, $failed_updates );
+            }
+
+            return $enabled;
         }
 
         /**

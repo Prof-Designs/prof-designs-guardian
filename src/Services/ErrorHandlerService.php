@@ -17,7 +17,7 @@
      * Monitors and handles PHP fatal errors with email notifications
      *
      * @package ProfDesigns\Guardian\Services
-     * @since   0.10.0
+     * @since   1.0.0
      */
     class ErrorHandlerService {
         /**

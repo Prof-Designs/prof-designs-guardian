@@ -17,7 +17,7 @@
      * Simplified Laravel-style application container with service provider support
      *
      * @package ProfDesigns\Guardian
-     * @since   0.10.0
+     * @since   1.0.0
      */
     class Application {
         /**

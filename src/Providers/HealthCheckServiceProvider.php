@@ -18,7 +18,7 @@
      * Registers and bootstraps health check features
      *
      * @package ProfDesigns\Guardian\Providers
-     * @since   0.10.0
+     * @since   1.0.0
      */
     class HealthCheckServiceProvider extends ServiceProvider {
         /**
