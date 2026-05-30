@@ -89,7 +89,8 @@
             // Log critical errors
             $critical_errors = [ E_WARNING, E_USER_WARNING, E_DEPRECATED, E_USER_DEPRECATED ];
 
-            if ( in_array( $severity, $critical_errors, true ) && $this->shouldLogRecoverableError( $severity, $message, $file ) ) {
+            if ( in_array( $severity, $critical_errors, true )
+                 && $this->shouldLogRecoverableError( $severity, $message, $file ) ) {
                 prof_guardian_log( "[Guardian] {$this->getErrorType($severity)}: {$message} in {$file}:{$line}" );
             }
 
@@ -132,9 +133,7 @@
 
             $normalized_file = str_replace( '\\', '/', strtolower( $file ) );
             $site_root       = str_replace( '\\', '/', strtolower( ABSPATH ) );
-            $guardian_root   = defined( 'PROF_GUARDIAN_PLUGIN_DIR' )
-                ? (string) constant( 'PROF_GUARDIAN_PLUGIN_DIR' )
-                : dirname( __DIR__, 2 );
+            $guardian_root   = defined( 'PROF_GUARDIAN_PLUGIN_DIR' ) ? (string) constant( 'PROF_GUARDIAN_PLUGIN_DIR' ) : dirname( __DIR__, 2 );
             $guardian_root   = str_replace( '\\', '/', strtolower( rtrim( $guardian_root, '/\\' ) ) );
 
             // Always keep Guardian-origin warnings.
@@ -145,7 +144,9 @@
             }
 
             // Keep WordPress core warnings (wp-admin/wp-includes) as actionable platform issues.
-            if ( strpos( $normalized_file, '/wp-admin/' ) !== false || strpos( $normalized_file, '/wp-includes/' ) !== false ) {
+            if ( strpos( $normalized_file, '/wp-admin/' ) !== false
+                 || strpos( $normalized_file, '/wp-includes/' )
+                    !== false ) {
                 return true;
             }
 
@@ -183,7 +184,9 @@
             $message .= "URL: "
                         . ( isset( $_SERVER['REQUEST_URI'] ) ? esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : 'N/A' );
 
-            $error_key = md5( (string) ( $error['message'] ?? '' ) . (string) ( $error['file'] ?? '' ) . (string) ( $error['line'] ?? '' ) );
+            $error_key = md5( (string) ( $error['message'] ?? '' )
+                              . (string) ( $error['file'] ?? '' )
+                              . (string) ( $error['line'] ?? '' ) );
 
             $this->mailer->send( $recipient_email, $subject, $message, 'fatal_error_' . $error_key );
         }

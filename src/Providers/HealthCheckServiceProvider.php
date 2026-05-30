@@ -92,7 +92,7 @@
                     wp_clear_scheduled_hook( self::HEALTH_CHECK_CRON_HOOK );
                 }
 
-                if ( as_next_scheduled_action( self::HEALTH_CHECK_AS_HOOK ) ) {
+                if ( as_next_scheduled_action( self::HEALTH_CHECK_AS_HOOK, [], 'prof-designs-guardian' ) ) {
                     update_option( self::SCHEDULE_RECONCILED_AT_OPTION, time(), false );
 
                     return;
@@ -108,7 +108,7 @@
             // Keep only one backend: clear Action Scheduler schedule when falling back to WP-Cron.
             if ( function_exists( 'as_unschedule_all_actions' )
                  && function_exists( 'as_next_scheduled_action' )
-                 && as_next_scheduled_action( self::HEALTH_CHECK_AS_HOOK ) ) {
+                 && as_next_scheduled_action( self::HEALTH_CHECK_AS_HOOK, [], 'prof-designs-guardian' ) ) {
                 as_unschedule_all_actions( self::HEALTH_CHECK_AS_HOOK, [], 'prof-designs-guardian' );
             }
 
