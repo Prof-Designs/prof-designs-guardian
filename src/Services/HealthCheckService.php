@@ -198,9 +198,11 @@
                     'message' => $result === '1' ? 'Database connected' : 'Database connection failed',
                 ];
             } catch ( \Exception $e ) {
+                prof_guardian_log( '[Guardian] Database health check error: ' . $e->getMessage() );
+
                 return [
                     'status'  => 'fail',
-                    'message' => 'Database error: ' . $e->getMessage(),
+                    'message' => 'Database connection failed',
                 ];
             }
         }

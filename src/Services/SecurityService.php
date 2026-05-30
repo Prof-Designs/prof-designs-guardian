@@ -445,7 +445,7 @@
 
             // Defense-in-depth: ensure index.php exists even if .htaccess is ignored (e.g. Nginx).
             if ( ! file_exists( $index_file ) ) {
-                $index_result = file_put_contents( $index_file, "<?php\n// Silence is golden.\n", LOCK_EX );
+                $index_result = @file_put_contents( $index_file, "<?php\n// Silence is golden.\n", LOCK_EX );
                 if ( $index_result === false ) {
                     prof_guardian_log( '[Guardian] Failed to create index.php in uploads directory' );
                 }
