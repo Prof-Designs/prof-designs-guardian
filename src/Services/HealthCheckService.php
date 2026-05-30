@@ -70,6 +70,11 @@
                 'methods'             => 'GET',
                 'callback'            => [ $this, 'handleHealthCheck' ],
                 'permission_callback' => function ( \WP_REST_Request $request ): bool {
+                    // Always allow authenticated admins.
+                    if ( current_user_can( 'manage_options' ) ) {
+                        return true;
+                    }
+
                     // If a shared secret is configured, require it for unauthenticated monitoring.
                     $health_key = defined( 'PROFDESIGNS_GUARDIAN_HEALTH_KEY' ) ? constant( 'PROFDESIGNS_GUARDIAN_HEALTH_KEY' ) : null;
 
@@ -79,8 +84,7 @@
                         return hash_equals( $health_key, $key );
                     }
 
-                    // Default: only authenticated admins can access detailed health data.
-                    return current_user_can( 'manage_options' );
+                    return false;
                 },
             ] );
         }

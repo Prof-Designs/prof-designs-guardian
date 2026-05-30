@@ -45,10 +45,7 @@
             register_shutdown_function( [ $errorHandler, 'handleFatalError' ] );
 
             // Register error handler for recoverable errors
-            set_error_handler( [ $errorHandler, 'handleRecoverableError' ], E_WARNING
-                                                                            | E_USER_WARNING
-                                                                            | E_DEPRECATED
-                                                                            | E_USER_DEPRECATED );
+            set_error_handler( [ $errorHandler, 'handleRecoverableError' ], $errorHandler->getRecoverableErrorMask() );
 
             prof_guardian_log( '[Guardian] Error handler initialized' );
         }

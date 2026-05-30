@@ -106,6 +106,11 @@
                 $this->updateThrottle( $type );
                 prof_guardian_log( "[Guardian] Email sent: {$subject}" );
             } else {
+                // Always log mail failures (even when WP_DEBUG is off) since alerts won't reach admins.
+                $safe_subject = str_replace( [ "\r", "\n" ], '', $subject );
+                $safe_to      = str_replace( [ "\r", "\n" ], '', $to );
+                error_log( "[Guardian] CRITICAL: Failed to send email: {$safe_subject} (to: {$safe_to})" );
+
                 prof_guardian_log( "[Guardian] Failed to send email: {$subject}" );
             }
 

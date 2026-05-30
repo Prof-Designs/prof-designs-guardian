@@ -43,42 +43,43 @@
          * @return bool
          */
         public function isEnabled(): bool {
-            return ! defined( 'PROFDESIGNS_GUARDIAN_AUTO_UPDATES' ) || (bool) constant( 'PROFDESIGNS_GUARDIAN_AUTO_UPDATES' );
+            return ! defined( 'PROFDESIGNS_GUARDIAN_AUTO_UPDATES' )
+                   || (bool) constant( 'PROFDESIGNS_GUARDIAN_AUTO_UPDATES' );
         }
 
         /**
          * Enable automatic plugin updates
          *
-         * @param bool  $update Whether to update.
+         * @param mixed $update Whether to update (can be null from WP internals).
          * @param mixed $item   Plugin update data (optional).
          *
          * @return bool
          */
-        public function enablePluginUpdates( bool $update, $item = null ): bool {
+        public function enablePluginUpdates( $update, $item = null ): bool {
             return true;
         }
 
         /**
          * Enable automatic theme updates
          *
-         * @param bool  $update Whether to update.
+         * @param mixed $update Whether to update (can be null from WP internals).
          * @param mixed $item   Theme update data (optional).
          *
          * @return bool
          */
-        public function enableThemeUpdates( bool $update, $item = null ): bool {
+        public function enableThemeUpdates( $update, $item = null ): bool {
             return true;
         }
 
         /**
          * Enable automatic core updates
          *
-         * @param bool   $update Whether to update.
-         * @param string $type   Update type (optional).
+         * @param mixed $update Whether to update (can be null from WP internals).
+         * @param mixed $type   Update type (optional).
          *
          * @return bool
          */
-        public function enableCoreUpdates( bool $update, string $type = '' ): bool {
+        public function enableCoreUpdates( $update, $type = '' ): bool {
             return true;
         }
 
@@ -176,7 +177,7 @@
          * @return bool
          */
         public function filterCoreUpdateNotificationEmail( bool $send, $update = null ): bool {
-            // Suppress manual update notification emails
-            return false;
+            // Preserve WordPress default behavior unless explicitly overridden.
+            return $send;
         }
     }
