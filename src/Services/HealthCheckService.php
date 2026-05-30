@@ -304,9 +304,11 @@
 
             // Send alert after consecutive failures
             if ( $failures >= self::MAX_FAILURES ) {
-                $this->sendFailureAlert( $endpoint, $error, $failures );
-                // Reset counter after alert
-                delete_option( 'prof_guardian_health_failures' );
+                $alert_sent = $this->sendFailureAlert( $endpoint, $error, $failures );
+                if ( $alert_sent ) {
+                    // Reset counter only after a successful alert send.
+                    delete_option( 'prof_guardian_health_failures' );
+                }
             }
         }
 
@@ -317,12 +319,12 @@
          * @param string $error    Error message
          * @param int    $failures Number of consecutive failures
          *
-         * @return void
+         * @return bool True when alert email was sent successfully.
          */
-        protected function sendFailureAlert( string $endpoint, string $error, int $failures ): void {
+        protected function sendFailureAlert( string $endpoint, string $error, int $failures ): bool {
             $recipient_email = $this->mailer->getRecipientEmail();
             if ( ! $recipient_email ) {
-                return;
+                return false;
             }
 
             $site_name = get_bloginfo( 'name' );
@@ -334,6 +336,6 @@
             $message .= "Time: " . current_time( 'mysql' ) . "\n\n";
             $message .= "Please investigate this issue as soon as possible.";
 
-            $this->mailer->send( $recipient_email, $subject, $message, 'health_check' );
+            return $this->mailer->send( $recipient_email, $subject, $message, 'health_check' );
         }
     }

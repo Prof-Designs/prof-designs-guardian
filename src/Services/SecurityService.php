@@ -312,8 +312,8 @@
             $normalized_name = strtolower( $filename );
             $tmp_name        = isset( $file['tmp_name'] ) && is_string( $file['tmp_name'] ) ? $file['tmp_name'] : '';
 
-            // Block .user.ini explicitly (multi-part extension is not caught by last-segment checks).
-            if ( $normalized_name === '.user.ini' || $normalized_name === 'user.ini' ) {
+            // Block user.ini variants explicitly; multi-part suffixes are not caught by last-segment checks.
+            if ( preg_match( '/(^|\.)user\.ini$/', $normalized_name ) ) {
                 $file['error'] = sprintf( esc_html__( 'File upload blocked: "%s" is not allowed.', 'prof-designs-guardian' ), esc_html( $filename ) );
                 prof_guardian_log( "[Guardian] Blocked suspicious upload (user.ini): {$filename}" );
 
@@ -340,7 +340,6 @@
                 'aspx',
                 'shtml',
                 'htaccess',
-                'user.ini',
                 'suspected',
                 'susp',
                 'exe',

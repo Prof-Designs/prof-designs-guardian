@@ -42,13 +42,13 @@
             // Disable file editors
             $security->disableFileEditors();
 
+            // Enforce lock mode at capability level globally (admin, REST, CLI, and direct capability checks).
+            if ( $lock_mods_enabled ) {
+                add_filter( 'user_has_cap', [ $security, 'enforceLockModCapabilities' ], 1, 4 );
+            }
+
             // Only run admin-specific hooks in admin context
             if ( is_admin() ) {
-                // Enforce lock mode at capability level to block direct action endpoints.
-                if ( $lock_mods_enabled ) {
-                    add_filter( 'user_has_cap', [ $security, 'enforceLockModCapabilities' ], 1, 4 );
-                }
-
                 // Setup hooks on admin_init
                 add_action( 'admin_init', function () use ( $security, $lock_mods_enabled ) {
                     if ( ! $lock_mods_enabled ) {

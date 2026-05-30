@@ -43,8 +43,10 @@
          * @return bool
          */
         public function isEnabled(): bool {
-            return ! defined( 'PROFDESIGNS_GUARDIAN_AUTO_UPDATES' )
-                   || (bool) constant( 'PROFDESIGNS_GUARDIAN_AUTO_UPDATES' );
+            // Keep semantics consistent with other Guardian feature flags.
+            return ! ( defined( 'PROFDESIGNS_GUARDIAN_AUTO_UPDATES' )
+                       && constant( 'PROFDESIGNS_GUARDIAN_AUTO_UPDATES' )
+                          === false );
         }
 
         /**

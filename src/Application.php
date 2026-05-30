@@ -72,7 +72,6 @@
             static::$instance = $this;
 
             // Register the container as a singleton
-            $this->instance( self::class, $this );
             $this->instance( Application::class, $this );
         }
 
