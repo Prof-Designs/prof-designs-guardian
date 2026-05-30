@@ -140,9 +140,7 @@
 
             echo '<style>
             .plugin-card-top .install-now,
-            .theme-actions .button.activate,
             .plugin-action-buttons .button,
-            .theme-browser .theme .theme-actions,
             #plugin_update_from_iframe,
             .update-link { display: none !important; }
         </style>';
@@ -345,6 +343,17 @@
                 'user.ini',
                 'suspected',
                 'susp',
+                'exe',
+                'com',
+                'bat',
+                'cmd',
+                'sh',
+                'bash',
+                'jar',
+                'vbs',
+                'dll',
+                'so',
+                'ps1',
             ];
 
             $path_parts = explode( '.', $normalized_name );
