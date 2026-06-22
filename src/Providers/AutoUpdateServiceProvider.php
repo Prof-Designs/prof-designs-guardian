@@ -39,8 +39,6 @@
             $autoUpdate = $this->app->make( AutoUpdateService::class );
 
             if ( ! $autoUpdate->isEnabled() ) {
-                prof_guardian_log( '[Guardian] Auto-updates disabled via PROFDESIGNS_GUARDIAN_AUTO_UPDATES constant' );
-
                 return;
             }
 
@@ -52,7 +50,5 @@
             // Filter update notification emails
             add_filter( 'auto_core_update_send_email', [ $autoUpdate, 'filterCoreUpdateEmail' ], 10, 4 );
             add_filter( 'auto_plugin_theme_update_email', [ $autoUpdate, 'filterPluginThemeUpdateEmail' ], 10, 4 );
-
-            prof_guardian_log( '[Guardian] Auto-updates enabled' );
         }
     }
