@@ -11,10 +11,10 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `Deprecated` for soon-to-be removed features.
 - `Removed` for now removed features.
 
-## 1.0.1 - 25.06.2026
-- [x] `Removed` Per-request auto-update log noise (`Auto-updates disabled/enabled` messages fired on every page load)
+## 1.1.0 - 25.06.2026
 - [x] `Fixed` Log timezone mismatch caused by early-bootstrap `error_log` call firing before plugins set `date.timezone`
 - [x] `Fixed` Fatal `TypeError` in `filterPluginThemeUpdateEmail`
+- [x] `Removed` Per-request auto-update log noise (`Auto-updates disabled/enabled` messages fired on every page load)
 - [x] `Removed` Dead `filterPluginUpdateEmail` and `filterThemeUpdateEmail` methods 
 - [x] `Removed` Unused `PROF_GUARDIAN_PLUGIN_FILE` constant
 
