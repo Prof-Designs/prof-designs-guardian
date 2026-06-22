@@ -114,92 +114,24 @@
         /**
          * Filter plugin/theme auto-update emails from the shared core filter.
          *
-         * WordPress uses a single filter for both types:
-         * `auto_plugin_theme_update_email( $enabled, $type, $successful_updates, $failed_updates )`.
+         * WordPress fires `auto_plugin_theme_update_email` with the email array as the
+         * first argument (since WP 5.5). $type is 'success', 'fail', or 'mixed'.
+         * Suppress success-only emails; preserve notifications when any update fails.
          *
-         * @param bool   $enabled            Whether to send the email.
-         * @param string $type               Update type provided by core ('plugin' or 'theme').
+         * @param array  $email              Email data passed to wp_mail() {to, subject, body, headers}.
+         * @param string $type               Update outcome: 'success', 'fail', or 'mixed'.
          * @param array  $successful_updates Successful update result items.
          * @param array  $failed_updates     Failed update result items.
          *
-         * @return bool
+         * @return array
          */
-        public function filterPluginThemeUpdateEmail( bool $enabled, string $type, array $successful_updates, array $failed_updates ): bool {
-            if ( $type === 'plugin' ) {
-                return $this->filterPluginUpdateEmail( $enabled, $type, $successful_updates, $failed_updates );
+        public function filterPluginThemeUpdateEmail( array $email, string $type, array $successful_updates, array $failed_updates ): array {
+            // Suppress success-only emails; keep notifications when any update failed.
+            if ( $type === 'success' ) {
+                $email['to'] = '';
             }
 
-            if ( $type === 'theme' ) {
-                return $this->filterThemeUpdateEmail( $enabled, $type, $successful_updates, $failed_updates );
-            }
-
-            return $enabled;
-        }
-
-        /**
-         * Filter plugin auto-update emails
-         *
-         * WordPress passes: ($send, $type, $successful_updates, $failed_updates).
-         * Preserve emails when any update fails, suppress success emails.
-         *
-         * @param bool   $send               Whether to send the email.
-         * @param string $type               Update type provided by core ('plugin' or 'theme').
-         * @param array  $successful_updates Successful update result items.
-         * @param array  $failed_updates     Failed update result items.
-         *
-         * @return bool
-         */
-        public function filterPluginUpdateEmail( bool $send, string $type, array $successful_updates, array $failed_updates ): bool {
-            if ( ! empty( $failed_updates ) ) {
-                return true;
-            }
-
-            foreach ( $successful_updates as $update_result ) {
-                if ( ! is_array( $update_result ) ) {
-                    continue;
-                }
-
-                // Extra guard: send email if a malformed successful item contains an error result.
-                if ( isset( $update_result['result'] )
-                     && ( is_wp_error( $update_result['result'] ) || $update_result['result'] === false ) ) {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        /**
-         * Filter theme auto-update emails.
-         *
-         * WordPress passes: ($send, $type, $successful_updates, $failed_updates).
-         * Preserve emails when any update fails, suppress success emails.
-         *
-         * @param bool   $send               Whether to send the email.
-         * @param string $type               Update type provided by core ('plugin' or 'theme').
-         * @param array  $successful_updates Successful update result items.
-         * @param array  $failed_updates     Failed update result items.
-         *
-         * @return bool
-         */
-        public function filterThemeUpdateEmail( bool $send, string $type, array $successful_updates, array $failed_updates ): bool {
-            if ( ! empty( $failed_updates ) ) {
-                return true;
-            }
-
-            foreach ( $successful_updates as $update_result ) {
-                if ( ! is_array( $update_result ) ) {
-                    continue;
-                }
-
-                // Extra guard: send email if a malformed successful item contains an error result.
-                if ( isset( $update_result['result'] )
-                     && ( is_wp_error( $update_result['result'] ) || $update_result['result'] === false ) ) {
-                    return true;
-                }
-            }
-
-            return false;
+            return $email;
         }
 
     }

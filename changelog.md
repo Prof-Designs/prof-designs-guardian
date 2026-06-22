@@ -11,16 +11,23 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `Deprecated` for soon-to-be removed features.
 - `Removed` for now removed features.
 
+## 1.0.1 - 25.06.2026
+- [x] `Removed` Per-request auto-update log noise (`Auto-updates disabled/enabled` messages fired on every page load)
+- [x] `Fixed` Log timezone mismatch caused by early-bootstrap `error_log` call firing before plugins set `date.timezone`
+- [x] `Fixed` Fatal `TypeError` in `filterPluginThemeUpdateEmail`
+- [x] `Removed` Dead `filterPluginUpdateEmail` and `filterThemeUpdateEmail` methods 
+- [x] `Removed` Unused `PROF_GUARDIAN_PLUGIN_FILE` constant
+
 ## 1.0.0 - 01.06.2026
-- [x] `Added` Laravel/Sage-inspired architecture with service providers and dependency injection
-- [x] `Added` PSR-4 autoloading and modern namespaced plugin structure
-- [x] `Added` Automatic WordPress core, plugin, and theme updates
-- [x] `Added` Fatal PHP error monitoring with email notifications
-- [x] `Added` REST API health check endpoint with consecutive failure tracking
-- [x] `Added` HTTP 503 health-check response for unhealthy status
-- [x] `Added` File editor protection (disables theme/plugin editors)
-- [x] `Added` Plugin and theme installation lockdown with capability-level enforcement
-- [x] `Added` Upload directory security hardening and malicious file prevention
-- [x] `Added` Smart email alert throttling and auto-update filtering
-- [x] `Added` Performance optimizations (health checks, capability filters)
-- [x] `Added` Configuration constants and security logging notifications
+- `Added` Laravel/Sage-inspired architecture with service providers and dependency injection
+- `Added` PSR-4 autoloading and modern namespaced plugin structure
+- `Added` Automatic WordPress core, plugin, and theme updates
+- `Added` Fatal PHP error monitoring with email notifications
+- `Added` REST API health check endpoint with consecutive failure tracking
+- `Added` HTTP 503 health-check response for unhealthy status
+- `Added` File editor protection (disables theme/plugin editors)
+- `Added` Plugin and theme installation lockdown with capability-level enforcement
+- `Added` Upload directory security hardening and malicious file prevention
+- `Added` Smart email alert throttling and auto-update filtering
+- `Added` Performance optimizations (health checks, capability filters)
+- `Added` Configuration constants and security logging notifications
