@@ -118,17 +118,22 @@
          * first argument (since WP 5.5). $type is 'success', 'fail', or 'mixed'.
          * Suppress success-only emails; preserve notifications when any update fails.
          *
-         * @param array  $email              Email data passed to wp_mail() {to, subject, body, headers}.
+         * Note: $email is untyped because an earlier filter callback may have returned
+         * false to disable the email; passing that through a strict array hint would
+         * throw a TypeError.
+         *
+         * @param mixed  $email              Email data passed to wp_mail() {to, subject, body, headers}, or false.
          * @param string $type               Update outcome: 'success', 'fail', or 'mixed'.
          * @param array  $successful_updates Successful update result items.
          * @param array  $failed_updates     Failed update result items.
          *
-         * @return array
+         * @return mixed
          */
-        public function filterPluginThemeUpdateEmail( array $email, string $type, array $successful_updates, array $failed_updates ): array {
-            // Suppress success-only emails via pre_wp_mail so wp_mail() is short-circuited
-            // before PHPMailer is invoked — avoids wp_mail_failed being triggered.
-            if ( $type === 'success' ) {
+        public function filterPluginThemeUpdateEmail( $email, string $type, array $successful_updates, array $failed_updates ) {
+            // Only suppress when we have an actual email array and the run was success-only.
+            // Uses pre_wp_mail to short-circuit wp_mail() before PHPMailer runs,
+            // avoiding spurious wp_mail_failed triggers.
+            if ( $type === 'success' && is_array( $email ) ) {
                 add_filter( 'pre_wp_mail', [ $this, 'suppressNextMail' ], 1, 2 );
             }
 
@@ -139,9 +144,8 @@
          * Short-circuit the next wp_mail() call and immediately self-remove.
          *
          * Registered at priority 1 by filterPluginThemeUpdateEmail() when a
-         * success-only auto-update email should be suppressed. Returning a
-         * non-null value from pre_wp_mail prevents PHPMailer from running,
-         * so wp_mail_failed is never triggered.
+         * success-only auto-update email should be suppressed. Returning true
+         * signals "handled" to callers so wp_mail() does not appear to have failed.
          *
          * @param mixed $return Current pre-emption value (null = not yet intercepted).
          * @param array $atts   wp_mail() arguments.
@@ -151,6 +155,6 @@
         public function suppressNextMail( $return, array $atts ): bool {
             remove_filter( 'pre_wp_mail', [ $this, 'suppressNextMail' ], 1 );
 
-            return false;
+            return true;
         }
     }

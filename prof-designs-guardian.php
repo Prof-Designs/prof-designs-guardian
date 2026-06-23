@@ -3,7 +3,7 @@
      * Plugin Name: Prof Designs Guardian
      * Plugin URI: https://profdesigns.com/
      * Description: A plugin that provides automatic updates, error handling, and health checks for your website.
-     * Version: 1.1.0-beta.2
+     * Version: 1.1.0-beta.3
      *
      * Author: Prof Designs
      * Author URI: https://profdesigns.com
@@ -32,7 +32,7 @@
     }
 
     // Define plugin constants
-    define( 'PROF_GUARDIAN_VERSION', '1.1.0-beta.2' );
+    define( 'PROF_GUARDIAN_VERSION', '1.1.0-beta.3' );
     define( 'PROF_GUARDIAN_PLUGIN_DIR', __DIR__ );
 
     // Load Composer autoloader
