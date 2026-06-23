@@ -29,6 +29,14 @@
         protected Application $app;
 
         /**
+         * Identifies the pending auto-update suppression email.
+         * Set by filterPluginThemeUpdateEmail(), consumed and cleared by suppressNextMail().
+         *
+         * @var array{to: string, subject: string}|null
+         */
+        private ?array $pendingSuppress = null;
+
+        /**
          * AutoUpdateService constructor
          *
          * @param Application $app Application instance
@@ -134,6 +142,10 @@
             // Uses pre_wp_mail to short-circuit wp_mail() before PHPMailer runs,
             // avoiding spurious wp_mail_failed triggers.
             if ( $type === 'success' && is_array( $email ) ) {
+                $this->pendingSuppress = [
+                    'to'      => $email['to'],
+                    'subject' => $email['subject'],
+                ];
                 add_filter( 'pre_wp_mail', [ $this, 'suppressNextMail' ], 1, 2 );
             }
 
@@ -144,18 +156,31 @@
          * Short-circuit the next wp_mail() call and immediately self-remove.
          *
          * Registered at priority 1 by filterPluginThemeUpdateEmail() when a
-         * success-only auto-update email should be suppressed. Returns true
-         * (signals "handled") only when no prior filter has already intercepted
-         * the send; otherwise the existing $return value is preserved so we do
-         * not accidentally override a false or WP_Error set by another callback.
+         * success-only auto-update email should be suppressed. The call is matched
+         * against the to/subject captured when the filter was registered; if the
+         * email does not match (another plugin triggered wp_mail() first), the
+         * filter removes itself and passes $return through unchanged.
+         *
+         * Returns $return ?? true on a match: preserves any existing non-null
+         * $return set by a prior pre_wp_mail callback rather than overriding it.
          *
          * @param mixed $return Current pre-emption value (null = not yet intercepted).
-         * @param array $atts   wp_mail() arguments.
+         * @param array $atts   wp_mail() arguments {to, subject, message, headers, attachments}.
          *
          * @return mixed True when we suppress; original $return otherwise.
          */
         public function suppressNextMail( $return, array $atts ) {
             remove_filter( 'pre_wp_mail', [ $this, 'suppressNextMail' ], 1 );
+
+            $pending               = $this->pendingSuppress;
+            $this->pendingSuppress = null;
+
+            // Only suppress if this is the exact email we targeted.
+            if ( $pending === null
+                 || $atts['to'] !== $pending['to']
+                 || $atts['subject'] !== $pending['subject'] ) {
+                return $return;
+            }
 
             return $return ?? true;
         }
