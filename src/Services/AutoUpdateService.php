@@ -126,12 +126,31 @@
          * @return array
          */
         public function filterPluginThemeUpdateEmail( array $email, string $type, array $successful_updates, array $failed_updates ): array {
-            // Suppress success-only emails; keep notifications when any update failed.
+            // Suppress success-only emails via pre_wp_mail so wp_mail() is short-circuited
+            // before PHPMailer is invoked — avoids wp_mail_failed being triggered.
             if ( $type === 'success' ) {
-                $email['to'] = '';
+                add_filter( 'pre_wp_mail', [ $this, 'suppressNextMail' ], 1, 2 );
             }
 
             return $email;
         }
 
+        /**
+         * Short-circuit the next wp_mail() call and immediately self-remove.
+         *
+         * Registered at priority 1 by filterPluginThemeUpdateEmail() when a
+         * success-only auto-update email should be suppressed. Returning a
+         * non-null value from pre_wp_mail prevents PHPMailer from running,
+         * so wp_mail_failed is never triggered.
+         *
+         * @param mixed $return Current pre-emption value (null = not yet intercepted).
+         * @param array $atts   wp_mail() arguments.
+         *
+         * @return bool
+         */
+        public function suppressNextMail( $return, array $atts ): bool {
+            remove_filter( 'pre_wp_mail', [ $this, 'suppressNextMail' ], 1 );
+
+            return false;
+        }
     }

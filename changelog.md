@@ -12,8 +12,10 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `Removed` for now removed features.
 
 ## 1.1.0 - 25.06.2026
+- [x] `Added` vendor to repository for Composer dependencies
 - [x] `Fixed` Log timezone mismatch caused by early-bootstrap `error_log` call firing before plugins set `date.timezone`
 - [x] `Fixed` Fatal `TypeError` in `filterPluginThemeUpdateEmail`
+- [x] `Fixed` Success-only auto-update email suppression now uses `pre_wp_mail`
 - [x] `Removed` Per-request auto-update log noise (`Auto-updates disabled/enabled` messages fired on every page load)
 - [x] `Removed` Dead `filterPluginUpdateEmail` and `filterThemeUpdateEmail` methods 
 - [x] `Removed` Unused `PROF_GUARDIAN_PLUGIN_FILE` constant
