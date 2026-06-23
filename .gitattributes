@@ -3,4 +3,4 @@
 /.gitignore export-ignore
 /.idea export-ignore
 /changelog.md export-ignore
-composer.json export-ignore
+/composer.json export-ignore

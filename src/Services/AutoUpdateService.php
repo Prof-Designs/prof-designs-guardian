@@ -144,17 +144,19 @@
          * Short-circuit the next wp_mail() call and immediately self-remove.
          *
          * Registered at priority 1 by filterPluginThemeUpdateEmail() when a
-         * success-only auto-update email should be suppressed. Returning true
-         * signals "handled" to callers so wp_mail() does not appear to have failed.
+         * success-only auto-update email should be suppressed. Returns true
+         * (signals "handled") only when no prior filter has already intercepted
+         * the send; otherwise the existing $return value is preserved so we do
+         * not accidentally override a false or WP_Error set by another callback.
          *
          * @param mixed $return Current pre-emption value (null = not yet intercepted).
          * @param array $atts   wp_mail() arguments.
          *
-         * @return bool
+         * @return mixed True when we suppress; original $return otherwise.
          */
-        public function suppressNextMail( $return, array $atts ): bool {
+        public function suppressNextMail( $return, array $atts ) {
             remove_filter( 'pre_wp_mail', [ $this, 'suppressNextMail' ], 1 );
 
-            return true;
+            return $return ?? true;
         }
     }
