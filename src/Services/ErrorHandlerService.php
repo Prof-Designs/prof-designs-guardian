@@ -132,7 +132,12 @@
 
             if ( is_callable( $this->previousErrorHandler ) ) {
                 try {
-                    return (bool) call_user_func( $this->previousErrorHandler, $severity, $message, $file, $line, $context );
+                    $prev_handled = (bool) call_user_func( $this->previousErrorHandler, $severity, $message, $file, $line, $context );
+
+                    // If Guardian already logged this error, return true regardless of what
+                    // the previous handler returned so PHP's built-in handler does not
+                    // produce a duplicate "PHP Warning:" line.
+                    return $prev_handled || $guardian_logged;
                 } catch ( \Throwable $throwable ) {
                     prof_guardian_log( '[Guardian] Previous error handler delegation failed: '
                                        . $throwable->getMessage() );
