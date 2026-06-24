@@ -176,9 +176,17 @@
             $this->pendingSuppress = null;
 
             // Only suppress if this is the exact email we targeted.
-            if ( $pending === null
-                 || $atts['to'] !== $pending['to']
-                 || $atts['subject'] !== $pending['subject'] ) {
+            // Normalize 'to' via wp_parse_list() on both sides: wp_mail() accepts a
+            // string or array and may reformat the value between filter and send.
+            if ( $pending === null ) {
+                return $return;
+            }
+
+            $pending_to = array_map( 'trim', wp_parse_list( $pending['to'] ) );
+            $atts_to    = array_map( 'trim', wp_parse_list( $atts['to'] ?? '' ) );
+
+            if ( $atts_to !== $pending_to
+                 || (string) ( $atts['subject'] ?? '' ) !== (string) $pending['subject'] ) {
                 return $return;
             }
 
