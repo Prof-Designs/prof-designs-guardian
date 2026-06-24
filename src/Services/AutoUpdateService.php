@@ -32,7 +32,7 @@
          * Identifies the pending auto-update suppression email.
          * Set by filterPluginThemeUpdateEmail(), consumed and cleared by suppressNextMail().
          *
-         * @var array{to: string, subject: string}|null
+         * @var array{to: string|array, subject: string}|null
          */
         private ?array $pendingSuppress = null;
 
@@ -141,7 +141,7 @@
             // Only suppress when we have an actual email array and the run was success-only.
             // Uses pre_wp_mail to short-circuit wp_mail() before PHPMailer runs,
             // avoiding spurious wp_mail_failed triggers.
-            if ( $type === 'success' && is_array( $email ) ) {
+            if ( $type === 'success' && is_array( $email ) && isset( $email['to'], $email['subject'] ) ) {
                 $this->pendingSuppress = [
                     'to'      => $email['to'],
                     'subject' => $email['subject'],

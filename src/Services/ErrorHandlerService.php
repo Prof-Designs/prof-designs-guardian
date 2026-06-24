@@ -115,12 +115,19 @@
          * @return bool
          */
         public function handleRecoverableError( int $severity, string $message, string $file, int $line, array $context = [] ): bool {
-            $loggable_mask = $this->getRecoverableErrorMask();
+            // Respect the @ operator: if the error was suppressed at the call site, don't handle it.
+            if ( ! ( error_reporting() & $severity ) ) {
+                return false;
+            }
+
+            $loggable_mask   = $this->getRecoverableErrorMask();
+            $guardian_logged = false;
 
             // Log only severities configured for Guardian monitoring.
             if ( ( $severity & $loggable_mask ) !== 0
                  && $this->shouldLogRecoverableError( $severity, $message, $file ) ) {
                 prof_guardian_log( "[Guardian] {$this->getErrorType($severity)}: {$message} in {$file}:{$line}" );
+                $guardian_logged = true;
             }
 
             if ( is_callable( $this->previousErrorHandler ) ) {
@@ -132,8 +139,10 @@
                 }
             }
 
-            // No previous handler: keep PHP internal handling behavior.
-            return false;
+            // Return true when Guardian logged the error so PHP's built-in handler does not
+            // write a duplicate "PHP Warning:" line. Return false otherwise so PHP still
+            // handles errors that Guardian consciously skipped.
+            return $guardian_logged;
         }
 
         /**
@@ -170,7 +179,6 @@
             }
 
             $normalized_file = str_replace( '\\', '/', strtolower( $file ) );
-            $site_root       = str_replace( '\\', '/', strtolower( ABSPATH ) );
             $guardian_root   = defined( 'PROF_GUARDIAN_PLUGIN_DIR' ) ? (string) constant( 'PROF_GUARDIAN_PLUGIN_DIR' ) : dirname( __DIR__, 2 );
             $guardian_root   = str_replace( '\\', '/', strtolower( rtrim( $guardian_root, '/\\' ) ) );
 
@@ -187,13 +195,15 @@
                 return true;
             }
 
-            // Any warning clearly outside site root can still be relevant.
-            if ( $site_root !== '' && strpos( $normalized_file, $site_root ) === false ) {
-                return true;
+            // Suppress vendor/library sub-directories — high-volume, low-actionability noise.
+            // Path-segment matching works regardless of server ABSPATH layout.
+            if ( strpos( $normalized_file, '/vendor/' ) !== false
+                 || strpos( $normalized_file, '/node_modules/' ) !== false ) {
+                return false;
             }
 
-            // By default suppress third-party plugin/theme warning storms.
-            return false;
+            // Log everything else: user themes, plugins, MU-plugins, custom code.
+            return true;
         }
 
         /**
