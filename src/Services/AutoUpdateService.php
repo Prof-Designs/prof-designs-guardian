@@ -170,25 +170,26 @@
          * @return mixed True when we suppress; original $return otherwise.
          */
         public function suppressNextMail( $return, array $atts ) {
-            remove_filter( 'pre_wp_mail', [ $this, 'suppressNextMail' ], 1 );
-
-            $pending               = $this->pendingSuppress;
-            $this->pendingSuppress = null;
+            if ( $this->pendingSuppress === null ) {
+                remove_filter( 'pre_wp_mail', [ $this, 'suppressNextMail' ], 1 );
+                return $return;
+            }
 
             // Only suppress if this is the exact email we targeted.
             // Normalize 'to' via wp_parse_list() on both sides: wp_mail() accepts a
             // string or array and may reformat the value between filter and send.
-            if ( $pending === null ) {
-                return $return;
-            }
-
-            $pending_to = array_map( 'trim', wp_parse_list( $pending['to'] ) );
+            $pending_to = array_map( 'trim', wp_parse_list( $this->pendingSuppress['to'] ) );
             $atts_to    = array_map( 'trim', wp_parse_list( $atts['to'] ?? '' ) );
 
             if ( $atts_to !== $pending_to
-                 || (string) ( $atts['subject'] ?? '' ) !== (string) $pending['subject'] ) {
+                 || (string) ( $atts['subject'] ?? '' ) !== (string) $this->pendingSuppress['subject'] ) {
+                // Not our email — leave filter registered so the next wp_mail() is checked.
                 return $return;
             }
+
+            // Matched — suppress and clean up.
+            remove_filter( 'pre_wp_mail', [ $this, 'suppressNextMail' ], 1 );
+            $this->pendingSuppress = null;
 
             return $return ?? true;
         }
