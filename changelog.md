@@ -11,16 +11,16 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `Deprecated` for soon-to-be removed features.
 - `Removed` for now removed features.
 
-## 1.1.0 - 25.06.2026
+## 1.1.0 - 27.06.2026
 - [x] `Added` vendor to repository for Composer dependencies
 - [x] `Fixed` Log timezone mismatch caused by early-bootstrap `error_log` call firing before plugins set `date.timezone`
 - [x] `Fixed` Fatal `TypeError` in `filterPluginThemeUpdateEmail`
 - [x] `Fixed` Success-only auto-update email suppression now uses `pre_wp_mail` 
-- [x] `Fixed` Double-logging — `handleRecoverableError` now returns `true` after Guardian logs an error
-- [x] `Fixed` Third-party vendor warning noise — `/vendor/` and `/node_modules/` path segments
 - [x] `Removed` Per-request auto-update log noise (`Auto-updates disabled/enabled` messages fired on every page load)
+- [x] `Removed` Recoverable error handler (set_error_handler) — warnings/notices now pass through as native PHP log entries
 - [x] `Removed` Dead `filterPluginUpdateEmail` and `filterThemeUpdateEmail` methods
 - [x] `Removed` Unused `PROF_GUARDIAN_PLUGIN_FILE` constant
+- [x] `Removed` PROFDESIGNS_GUARDIAN_CAPTURE_DEPRECATED and PROFDESIGNS_GUARDIAN_LOG_THIRD_PARTY_WARNINGS constants
 
 ## 1.0.0 - 01.06.2026
 - `Added` Laravel/Sage-inspired architecture with service providers and dependency injection
