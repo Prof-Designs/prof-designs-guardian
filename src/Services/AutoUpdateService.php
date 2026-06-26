@@ -158,8 +158,8 @@
          * Registered at priority 1 by filterPluginThemeUpdateEmail() when a
          * success-only auto-update email should be suppressed. The call is matched
          * against the to/subject captured when the filter was registered; if the
-         * email does not match (another plugin triggered wp_mail() first), the
-         * filter removes itself and passes $return through unchanged.
+         * email does not match, the filter stays registered and passes $return
+         * through unchanged so the next wp_mail() call is checked.
          *
          * Returns $return ?? true on a match: preserves any existing non-null
          * $return set by a prior pre_wp_mail callback rather than overriding it.
@@ -172,6 +172,7 @@
         public function suppressNextMail( $return, array $atts ) {
             if ( $this->pendingSuppress === null ) {
                 remove_filter( 'pre_wp_mail', [ $this, 'suppressNextMail' ], 1 );
+
                 return $return;
             }
 

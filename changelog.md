@@ -12,15 +12,18 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `Removed` for now removed features.
 
 ## 1.1.0 - 27.06.2026
-- [x] `Added` vendor to repository for Composer dependencies
-- [x] `Fixed` Log timezone mismatch caused by early-bootstrap `error_log` call firing before plugins set `date.timezone`
+- [x] `Added` vendor directory to repository for Composer dependencies
+- [x] `Changed` `LOCK_BLOCKED_CAPS` visibility from `protected` to `public`
+- [x] `Changed` Capability migration key bumped to `prof_guardian_caps_restored_v3`
+- [x] `Fixed` Log timezone mismatch on early-bootstrap `error_log` calls
 - [x] `Fixed` Fatal `TypeError` in `filterPluginThemeUpdateEmail`
-- [x] `Fixed` Success-only auto-update email suppression now uses `pre_wp_mail` 
-- [x] `Removed` Per-request auto-update log noise (`Auto-updates disabled/enabled` messages fired on every page load)
-- [x] `Removed` Recoverable error handler (set_error_handler) — warnings/notices now pass through as native PHP log entries
+- [x] `Fixed` Success-only auto-update email suppression via `pre_wp_mail`
+- [x] `Fixed` Administrator role missing theme and plugin modification caps after plugin removal
+- [x] `Removed` Per-request auto-update log noise
+- [x] `Removed` Recoverable error handler (`set_error_handler`)
 - [x] `Removed` Dead `filterPluginUpdateEmail` and `filterThemeUpdateEmail` methods
 - [x] `Removed` Unused `PROF_GUARDIAN_PLUGIN_FILE` constant
-- [x] `Removed` PROFDESIGNS_GUARDIAN_CAPTURE_DEPRECATED and PROFDESIGNS_GUARDIAN_LOG_THIRD_PARTY_WARNINGS constants
+- [x] `Removed` `PROFDESIGNS_GUARDIAN_CAPTURE_DEPRECATED` and `PROFDESIGNS_GUARDIAN_LOG_THIRD_PARTY_WARNINGS` constants
 
 ## 1.0.0 - 01.06.2026
 - `Added` Laravel/Sage-inspired architecture with service providers and dependency injection

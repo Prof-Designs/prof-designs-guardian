@@ -42,7 +42,7 @@
             add_action( 'init', [ $this, 'protectUploads' ], 5 );
 
             // Restore capabilities on admin_init if needed
-            if ( is_admin() && ! get_option( 'prof_guardian_caps_restored_v2' ) ) {
+            if ( is_admin() && ! get_option( 'prof_guardian_caps_restored_v3' ) ) {
                 add_action( 'admin_init', [ $this, 'restoreCapabilities' ], 3 );
             }
         }
@@ -115,22 +115,25 @@
          */
         public function restoreCapabilities(): void {
             // Check if restoration has already been done
-            if ( get_option( 'prof_guardian_caps_restored_v2' ) ) {
+            if ( get_option( 'prof_guardian_caps_restored_v3' ) ) {
                 return;
             }
 
-            prof_guardian_log( '[Guardian] Restoring install_plugins capability for Site Health compatibility...' );
+            prof_guardian_log( '[Guardian] Restoring administrator capabilities...' );
 
             $admin_role = get_role( 'administrator' );
-            if ( $admin_role && ! $admin_role->has_cap( 'install_plugins' ) ) {
-                $admin_role->add_cap( 'install_plugins' );
-                prof_guardian_log( '[Guardian] Restored install_plugins to administrator role' );
-            } else {
-                prof_guardian_log( '[Guardian] Administrator already has install_plugins capability' );
+            if ( $admin_role ) {
+                $caps_to_restore = SecurityService::LOCK_BLOCKED_CAPS;
+                foreach ( $caps_to_restore as $cap ) {
+                    if ( ! $admin_role->has_cap( $cap ) ) {
+                        $admin_role->add_cap( $cap, true );
+                        prof_guardian_log( "[Guardian] Restored {$cap} to administrator role" );
+                    }
+                }
             }
 
             // Mark restoration as complete
-            update_option( 'prof_guardian_caps_restored_v2', true, false );
+            update_option( 'prof_guardian_caps_restored_v3', true, false );
 
             prof_guardian_log( '[Guardian] Capability restoration complete' );
         }
