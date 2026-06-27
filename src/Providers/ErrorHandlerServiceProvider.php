@@ -41,12 +41,8 @@
             /** @var ErrorHandlerService $errorHandler */
             $errorHandler = $this->app->make( ErrorHandlerService::class );
 
-            // Register shutdown handler for fatal errors
+            // Register shutdown handler for fatal errors only.
             register_shutdown_function( [ $errorHandler, 'handleFatalError' ] );
-
-            // Register for all severities, then let the service decide what to log and delegate.
-            $previous_error_handler = set_error_handler( [ $errorHandler, 'handleRecoverableError' ], E_ALL );
-            $errorHandler->setPreviousErrorHandler( $previous_error_handler );
 
             prof_guardian_log( '[Guardian] Error handler initialized' );
         }

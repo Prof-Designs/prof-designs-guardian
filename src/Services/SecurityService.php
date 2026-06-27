@@ -25,7 +25,7 @@
         /**
          * Capabilities denied while lock mode is active.
          */
-        protected const LOCK_BLOCKED_CAPS = [
+        public const LOCK_BLOCKED_CAPS = [
             // Intentionally keep activate_plugins allowed so admins can open Plugins list
             // and deactivate problematic plugins while install/update/delete remain locked.
             'install_plugins',

@@ -29,6 +29,14 @@
         protected Application $app;
 
         /**
+         * Identifies the pending auto-update suppression email.
+         * Set by filterPluginThemeUpdateEmail(), consumed and cleared by suppressNextMail().
+         *
+         * @var array{to: string|array, subject: string}|null
+         */
+        private ?array $pendingSuppress = null;
+
+        /**
          * AutoUpdateService constructor
          *
          * @param Application $app Application instance
@@ -114,92 +122,76 @@
         /**
          * Filter plugin/theme auto-update emails from the shared core filter.
          *
-         * WordPress uses a single filter for both types:
-         * `auto_plugin_theme_update_email( $enabled, $type, $successful_updates, $failed_updates )`.
+         * WordPress fires `auto_plugin_theme_update_email` with the email array as the
+         * first argument (since WP 5.5). $type is 'success', 'fail', or 'mixed'.
+         * Suppress success-only emails; preserve notifications when any update fails.
          *
-         * @param bool   $enabled            Whether to send the email.
-         * @param string $type               Update type provided by core ('plugin' or 'theme').
+         * Note: $email is untyped because an earlier filter callback may have returned
+         * false to disable the email; passing that through a strict array hint would
+         * throw a TypeError.
+         *
+         * @param mixed  $email              Email data passed to wp_mail() {to, subject, body, headers}, or false.
+         * @param string $type               Update outcome: 'success', 'fail', or 'mixed'.
          * @param array  $successful_updates Successful update result items.
          * @param array  $failed_updates     Failed update result items.
          *
-         * @return bool
+         * @return mixed
          */
-        public function filterPluginThemeUpdateEmail( bool $enabled, string $type, array $successful_updates, array $failed_updates ): bool {
-            if ( $type === 'plugin' ) {
-                return $this->filterPluginUpdateEmail( $enabled, $type, $successful_updates, $failed_updates );
+        public function filterPluginThemeUpdateEmail( $email, string $type, array $successful_updates, array $failed_updates ) {
+            // Only suppress when we have an actual email array and the run was success-only.
+            // Uses pre_wp_mail to short-circuit wp_mail() before PHPMailer runs,
+            // avoiding spurious wp_mail_failed triggers.
+            if ( $type === 'success' && is_array( $email ) && isset( $email['to'], $email['subject'] ) ) {
+                $this->pendingSuppress = [
+                    'to'      => $email['to'],
+                    'subject' => $email['subject'],
+                ];
+                add_filter( 'pre_wp_mail', [ $this, 'suppressNextMail' ], 1, 2 );
             }
 
-            if ( $type === 'theme' ) {
-                return $this->filterThemeUpdateEmail( $enabled, $type, $successful_updates, $failed_updates );
-            }
-
-            return $enabled;
+            return $email;
         }
 
         /**
-         * Filter plugin auto-update emails
+         * Short-circuit the next wp_mail() call and immediately self-remove.
          *
-         * WordPress passes: ($send, $type, $successful_updates, $failed_updates).
-         * Preserve emails when any update fails, suppress success emails.
+         * Registered at priority 1 by filterPluginThemeUpdateEmail() when a
+         * success-only auto-update email should be suppressed. The call is matched
+         * against the to/subject captured when the filter was registered; if the
+         * email does not match, the filter stays registered and passes $return
+         * through unchanged so the next wp_mail() call is checked.
          *
-         * @param bool   $send               Whether to send the email.
-         * @param string $type               Update type provided by core ('plugin' or 'theme').
-         * @param array  $successful_updates Successful update result items.
-         * @param array  $failed_updates     Failed update result items.
+         * Returns $return ?? true on a match: preserves any existing non-null
+         * $return set by a prior pre_wp_mail callback rather than overriding it.
          *
-         * @return bool
+         * @param mixed $return Current pre-emption value (null = not yet intercepted).
+         * @param array $atts   wp_mail() arguments {to, subject, message, headers, attachments}.
+         *
+         * @return mixed True when we suppress; original $return otherwise.
          */
-        public function filterPluginUpdateEmail( bool $send, string $type, array $successful_updates, array $failed_updates ): bool {
-            if ( ! empty( $failed_updates ) ) {
-                return true;
+        public function suppressNextMail( $return, array $atts ) {
+            if ( $this->pendingSuppress === null ) {
+                remove_filter( 'pre_wp_mail', [ $this, 'suppressNextMail' ], 1 );
+
+                return $return;
             }
 
-            foreach ( $successful_updates as $update_result ) {
-                if ( ! is_array( $update_result ) ) {
-                    continue;
-                }
+            // Only suppress if this is the exact email we targeted.
+            // Normalize 'to' via wp_parse_list() on both sides: wp_mail() accepts a
+            // string or array and may reformat the value between filter and send.
+            $pending_to = array_map( 'trim', wp_parse_list( $this->pendingSuppress['to'] ) );
+            $atts_to    = array_map( 'trim', wp_parse_list( $atts['to'] ?? '' ) );
 
-                // Extra guard: send email if a malformed successful item contains an error result.
-                if ( isset( $update_result['result'] )
-                     && ( is_wp_error( $update_result['result'] ) || $update_result['result'] === false ) ) {
-                    return true;
-                }
+            if ( $atts_to !== $pending_to
+                 || (string) ( $atts['subject'] ?? '' ) !== (string) $this->pendingSuppress['subject'] ) {
+                // Not our email — leave filter registered so the next wp_mail() is checked.
+                return $return;
             }
 
-            return false;
+            // Matched — suppress and clean up.
+            remove_filter( 'pre_wp_mail', [ $this, 'suppressNextMail' ], 1 );
+            $this->pendingSuppress = null;
+
+            return $return ?? true;
         }
-
-        /**
-         * Filter theme auto-update emails.
-         *
-         * WordPress passes: ($send, $type, $successful_updates, $failed_updates).
-         * Preserve emails when any update fails, suppress success emails.
-         *
-         * @param bool   $send               Whether to send the email.
-         * @param string $type               Update type provided by core ('plugin' or 'theme').
-         * @param array  $successful_updates Successful update result items.
-         * @param array  $failed_updates     Failed update result items.
-         *
-         * @return bool
-         */
-        public function filterThemeUpdateEmail( bool $send, string $type, array $successful_updates, array $failed_updates ): bool {
-            if ( ! empty( $failed_updates ) ) {
-                return true;
-            }
-
-            foreach ( $successful_updates as $update_result ) {
-                if ( ! is_array( $update_result ) ) {
-                    continue;
-                }
-
-                // Extra guard: send email if a malformed successful item contains an error result.
-                if ( isset( $update_result['result'] )
-                     && ( is_wp_error( $update_result['result'] ) || $update_result['result'] === false ) ) {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
     }

@@ -49,14 +49,6 @@ define('PROFDESIGNS_GUARDIAN_LOCK_MODS', false);
 // To DISABLE automatic updates (not recommended):
 // Default: true (auto-updates enabled)
 define('PROFDESIGNS_GUARDIAN_AUTO_UPDATES', false);
-
-// Optional: include deprecated warnings in Guardian recoverable error handler logs
-// Default: false
-define('PROFDESIGNS_GUARDIAN_CAPTURE_DEPRECATED', true);
-
-// Optional: include third-party plugin/theme warnings in Guardian logs
-// Default: false (suppressed to reduce warning storms)
-define('PROFDESIGNS_GUARDIAN_LOG_THIRD_PARTY_WARNINGS', true);
 ```
 
 **Security Protection Levels:**
