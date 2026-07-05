@@ -57,31 +57,51 @@
         }
 
         /**
-         * Enable automatic plugin updates
+         * Enable automatic plugin updates.
          *
-         * @param mixed $update Whether to update (can be null from WP internals).
-         * @param mixed $item   Plugin update data (optional).
+         * Runs at priority 999 to ensure it fires after any plugin that opts out via
+         * its own `auto_update_plugin` filter (e.g. Wordfence at priority 10 or 99).
+         * Always returns true — Guardian's purpose is to keep everything updated.
+         *
+         * @param mixed $update Whether to update (null = no decision yet, false = opted out).
+         * @param mixed $item   Plugin update data object from the updates transient.
          *
          * @return bool
          */
         public function enablePluginUpdates( $update, $item = null ): bool {
-            return $update === null || (bool) $update;
+            if ( $update === false && $item !== null ) {
+                $slug = $item->slug ?? ( isset( $item->plugin ) ? dirname( $item->plugin ) : 'unknown' );
+                prof_guardian_log( sprintf( '[Guardian][AutoUpdate] Overriding plugin opt-out: %s', $slug ) );
+            }
+
+            return true;
         }
 
         /**
-         * Enable automatic theme updates
+         * Enable automatic theme updates.
          *
-         * @param mixed $update Whether to update (can be null from WP internals).
-         * @param mixed $item   Theme update data (optional).
+         * Runs at priority 999 to override any theme opt-outs.
+         * Always returns true.
+         *
+         * @param mixed $update Whether to update (null = no decision yet, false = opted out).
+         * @param mixed $item   Theme update data object from the updates transient.
          *
          * @return bool
          */
         public function enableThemeUpdates( $update, $item = null ): bool {
-            return $update === null || (bool) $update;
+            if ( $update === false && $item !== null ) {
+                $slug = $item->theme ?? $item->slug ?? 'unknown';
+                prof_guardian_log( sprintf( '[Guardian][AutoUpdate] Overriding theme opt-out: %s', $slug ) );
+            }
+
+            return true;
         }
 
         /**
-         * Enable automatic core updates
+         * Enable automatic core updates.
+         *
+         * Always returns true. WordPress respects AUTOMATIC_UPDATER_DISABLED and
+         * WP_AUTO_UPDATE_CORE = false before the filter is even called.
          *
          * @param mixed $update Whether to update (can be null from WP internals).
          * @param mixed $type   Update type (optional).
@@ -89,7 +109,48 @@
          * @return bool
          */
         public function enableCoreUpdates( $update, $type = '' ): bool {
-            return $update === null || (bool) $update;
+            return true;
+        }
+
+        /**
+         * Log the outcome of every item processed during an automatic update run.
+         *
+         * Hooked to `automatic_updates_complete`. Each result object contains:
+         *   $result->name        — human-readable package name
+         *   $result->item        — update data (new_version, slug, …)
+         *   $result->result      — true on success, WP_Error on failure
+         *
+         * @param array $results Keyed by type ('plugin','theme','core','translation').
+         *
+         * @return void
+         */
+        public function logAutoUpdateResults( array $results ): void {
+            $labels  = [ 'plugin' => 'Plugin', 'theme' => 'Theme', 'core' => 'Core', 'translation' => 'Translation' ];
+            $total   = 0;
+            $success = 0;
+            $failed  = 0;
+
+            foreach ( $labels as $type => $label ) {
+                if ( empty( $results[ $type ] ) ) {
+                    continue;
+                }
+                foreach ( $results[ $type ] as $result ) {
+                    $total ++;
+                    $ok = ! is_wp_error( $result->result ) && $result->result !== false;
+                    if ( $ok ) {
+                        $success ++;
+                    } else {
+                        $failed ++;
+                    }
+                    $version = isset( $result->item->new_version ) ? ' v' . $result->item->new_version : '';
+                    $status  = $ok ? 'OK' : 'FAILED';
+                    prof_guardian_log( sprintf( '[Guardian][AutoUpdate] %s %s: %s%s', $label, $status, $result->name, $version ) );
+                }
+            }
+
+            if ( $total > 0 ) {
+                prof_guardian_log( sprintf( '[Guardian][AutoUpdate] Complete — %d/%d succeeded, %d failed', $success, $total, $failed ) );
+            }
         }
 
         /**

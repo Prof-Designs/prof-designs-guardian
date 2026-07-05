@@ -11,19 +11,26 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `Deprecated` for soon-to-be removed features.
 - `Removed` for now removed features.
 
+## 1.1.1 - ??.07.2026
+- [x] `Added` Opt-out override notice logged per plugin/theme slug
+- [x] `Added` `logAutoUpdateResults` on `automatic_updates_complete` — per-item OK/FAILED with version and run summary
+- [x] `Fixed` `auto_update_*` hooks registered at priority 999 to override plugin/theme opt-out filters
+- [x] `Fixed` `$item` never received by update callbacks; `add_filter` arg count corrected to 2
+- [x] `Fixed` `enablePluginUpdates`, `enableThemeUpdates`, `enableCoreUpdates` unconditionally return `true`
+
 ## 1.1.0 - 27.06.2026
-- [x] `Added` vendor directory to repository for Composer dependencies
-- [x] `Changed` `LOCK_BLOCKED_CAPS` visibility from `protected` to `public`
-- [x] `Changed` Capability migration key bumped to `prof_guardian_caps_restored_v3`
-- [x] `Fixed` Log timezone mismatch on early-bootstrap `error_log` calls
-- [x] `Fixed` Fatal `TypeError` in `filterPluginThemeUpdateEmail`
-- [x] `Fixed` Success-only auto-update email suppression via `pre_wp_mail`
-- [x] `Fixed` Administrator role missing theme and plugin modification caps after plugin removal
-- [x] `Removed` Per-request auto-update log noise
-- [x] `Removed` Recoverable error handler (`set_error_handler`)
-- [x] `Removed` Dead `filterPluginUpdateEmail` and `filterThemeUpdateEmail` methods
-- [x] `Removed` Unused `PROF_GUARDIAN_PLUGIN_FILE` constant
-- [x] `Removed` `PROFDESIGNS_GUARDIAN_CAPTURE_DEPRECATED` and `PROFDESIGNS_GUARDIAN_LOG_THIRD_PARTY_WARNINGS` constants
+- `Added` vendor directory to repository for Composer dependencies
+- `Changed` `LOCK_BLOCKED_CAPS` visibility from `protected` to `public`
+- `Changed` Capability migration key bumped to `prof_guardian_caps_restored_v3`
+- `Fixed` Log timezone mismatch on early-bootstrap `error_log` calls
+- `Fixed` Fatal `TypeError` in `filterPluginThemeUpdateEmail`
+- `Fixed` Success-only auto-update email suppression via `pre_wp_mail`
+- `Fixed` Administrator role missing theme and plugin modification caps after plugin removal
+- `Removed` Per-request auto-update log noise
+- `Removed` Recoverable error handler (`set_error_handler`)
+- `Removed` Dead `filterPluginUpdateEmail` and `filterThemeUpdateEmail` methods
+- `Removed` Unused `PROF_GUARDIAN_PLUGIN_FILE` constant
+- `Removed` `PROFDESIGNS_GUARDIAN_CAPTURE_DEPRECATED` and `PROFDESIGNS_GUARDIAN_LOG_THIRD_PARTY_WARNINGS` constants
 
 ## 1.0.0 - 01.06.2026
 - `Added` Laravel/Sage-inspired architecture with service providers and dependency injection
