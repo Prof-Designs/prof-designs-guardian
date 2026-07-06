@@ -69,11 +69,6 @@
          * @return bool
          */
         public function enablePluginUpdates( $update, $item = null ): bool {
-            if ( $update === false && $item !== null ) {
-                $slug = $item->slug ?? ( isset( $item->plugin ) ? dirname( $item->plugin ) : 'unknown' );
-                prof_guardian_log( sprintf( '[Guardian][AutoUpdate] Overriding plugin opt-out: %s', $slug ) );
-            }
-
             return true;
         }
 
@@ -89,11 +84,6 @@
          * @return bool
          */
         public function enableThemeUpdates( $update, $item = null ): bool {
-            if ( $update === false && $item !== null ) {
-                $slug = $item->theme ?? $item->slug ?? 'unknown';
-                prof_guardian_log( sprintf( '[Guardian][AutoUpdate] Overriding theme opt-out: %s', $slug ) );
-            }
-
             return true;
         }
 
@@ -125,31 +115,23 @@
          * @return void
          */
         public function logAutoUpdateResults( array $results ): void {
-            $labels  = [ 'plugin' => 'Plugin', 'theme' => 'Theme', 'core' => 'Core', 'translation' => 'Translation' ];
-            $total   = 0;
-            $success = 0;
-            $failed  = 0;
+            $labels = [ 'plugin' => 'Plugin', 'theme' => 'Theme', 'core' => 'Core', 'translation' => 'Translation' ];
+            $failed = [];
 
             foreach ( $labels as $type => $label ) {
                 if ( empty( $results[ $type ] ) ) {
                     continue;
                 }
                 foreach ( $results[ $type ] as $result ) {
-                    $total ++;
-                    $ok = ! is_wp_error( $result->result ) && $result->result !== false;
-                    if ( $ok ) {
-                        $success ++;
-                    } else {
-                        $failed ++;
+                    if ( is_wp_error( $result->result ) || $result->result === false ) {
+                        $version  = isset( $result->item->new_version ) ? ' v' . $result->item->new_version : '';
+                        $failed[] = sprintf( '%s: %s%s', $label, $result->name, $version );
                     }
-                    $version = isset( $result->item->new_version ) ? ' v' . $result->item->new_version : '';
-                    $status  = $ok ? 'OK' : 'FAILED';
-                    prof_guardian_log( sprintf( '[Guardian][AutoUpdate] %s %s: %s%s', $label, $status, $result->name, $version ) );
                 }
             }
 
-            if ( $total > 0 ) {
-                prof_guardian_log( sprintf( '[Guardian][AutoUpdate] Complete — %d/%d succeeded, %d failed', $success, $total, $failed ) );
+            foreach ( $failed as $entry ) {
+                prof_guardian_log( '[Guardian][AutoUpdate] FAILED ' . $entry );
             }
         }
 

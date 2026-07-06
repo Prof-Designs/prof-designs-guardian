@@ -11,7 +11,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `Deprecated` for soon-to-be removed features.
 - `Removed` for now removed features.
 
-## 1.1.1 - ??.07.2026
+## 1.1.1 - 06.07.2026
 - [x] `Added` Opt-out override notice logged per plugin/theme slug
 - [x] `Added` `logAutoUpdateResults` on `automatic_updates_complete` — per-item OK/FAILED with version and run summary
 - [x] `Fixed` `auto_update_*` hooks registered at priority 999 to override plugin/theme opt-out filters
