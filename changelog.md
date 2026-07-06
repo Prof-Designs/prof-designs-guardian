@@ -12,11 +12,10 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `Removed` for now removed features.
 
 ## 1.1.1 - 06.07.2026
-- [x] `Added` Opt-out override notice logged per plugin/theme slug
-- [x] `Added` `logAutoUpdateResults` on `automatic_updates_complete` — per-item OK/FAILED with version and run summary
-- [x] `Fixed` `auto_update_*` hooks registered at priority 999 to override plugin/theme opt-out filters
-- [x] `Fixed` `$item` never received by update callbacks; `add_filter` arg count corrected to 2
-- [x] `Fixed` `enablePluginUpdates`, `enableThemeUpdates`, `enableCoreUpdates` unconditionally return `true`
+- `Fixed` `auto_update_*` hooks registered at priority 999 to override plugin/theme opt-out filters
+- `Fixed` `$item` never received by update callbacks; `add_filter` arg count corrected to 2
+- `Fixed` `enablePluginUpdates`, `enableThemeUpdates`, `enableCoreUpdates` unconditionally return `true`
+- `Added` `logAutoUpdateResults` on `automatic_updates_complete` — logs failed items only; silent on a clean run
 
 ## 1.1.0 - 27.06.2026
 - `Added` vendor directory to repository for Composer dependencies
