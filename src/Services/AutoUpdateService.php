@@ -93,22 +93,24 @@
          * Always returns true. WordPress respects AUTOMATIC_UPDATER_DISABLED and
          * WP_AUTO_UPDATE_CORE = false before the filter is even called.
          *
-         * @param mixed $update Whether to update (can be null from WP internals).
-         * @param mixed $type   Update type (optional).
+         * @param mixed $update Whether to update (null = no decision yet, false = opted out).
+         * @param mixed $item   Core update offer object from the updates transient.
          *
          * @return bool
          */
-        public function enableCoreUpdates( $update, $type = '' ): bool {
+        public function enableCoreUpdates( $update, $item = null ): bool {
             return true;
         }
 
         /**
-         * Log the outcome of every item processed during an automatic update run.
+         * Log failed items from an automatic update run.
          *
-         * Hooked to `automatic_updates_complete`. Each result object contains:
-         *   $result->name        — human-readable package name
-         *   $result->item        — update data (new_version, slug, …)
-         *   $result->result      — true on success, WP_Error on failure
+         * Hooked to `automatic_updates_complete`. Silent on a clean run;
+         * writes one `[Guardian][AutoUpdate] FAILED` line per failed item.
+         * Each result object contains:
+         *   $result->name   — human-readable package name
+         *   $result->item   — update data (new_version, slug, …)
+         *   $result->result — true on success, WP_Error or false on failure
          *
          * @param array $results Keyed by type ('plugin','theme','core','translation').
          *
