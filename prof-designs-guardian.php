@@ -32,7 +32,7 @@
     }
 
     // Define plugin constants
-    define( 'PROF_GUARDIAN_VERSION', '1.1.1-RC.2.1' );
+    define( 'PROF_GUARDIAN_VERSION', '1.1.1' );
     define( 'PROF_GUARDIAN_PLUGIN_DIR', __DIR__ );
 
     // Load Composer autoloader
