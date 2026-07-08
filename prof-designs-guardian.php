@@ -3,7 +3,7 @@
      * Plugin Name: Prof Designs Guardian
      * Plugin URI: https://profdesigns.com/
      * Description: A plugin that provides automatic updates, error handling, and health checks for your website.
-     * Version: 1.1.1-RC.2.1
+     * Version: 1.1.1
      *
      * Author: Prof Designs
      * Author URI: https://profdesigns.com
