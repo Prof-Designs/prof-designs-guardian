@@ -57,39 +57,84 @@
         }
 
         /**
-         * Enable automatic plugin updates
+         * Enable automatic plugin updates.
          *
-         * @param mixed $update Whether to update (can be null from WP internals).
-         * @param mixed $item   Plugin update data (optional).
+         * Runs at priority 999 to ensure it fires after any plugin that opts out via
+         * its own `auto_update_plugin` filter (e.g. Wordfence at priority 10 or 99).
+         * Always returns true — Guardian's purpose is to keep everything updated.
+         *
+         * @param mixed $update Whether to update (null = no decision yet, false = opted out).
+         * @param mixed $item   Plugin update data object from the updates transient.
          *
          * @return bool
          */
         public function enablePluginUpdates( $update, $item = null ): bool {
-            return $update === null || (bool) $update;
+            return true;
         }
 
         /**
-         * Enable automatic theme updates
+         * Enable automatic theme updates.
          *
-         * @param mixed $update Whether to update (can be null from WP internals).
-         * @param mixed $item   Theme update data (optional).
+         * Runs at priority 999 to override any theme opt-outs.
+         * Always returns true.
+         *
+         * @param mixed $update Whether to update (null = no decision yet, false = opted out).
+         * @param mixed $item   Theme update data object from the updates transient.
          *
          * @return bool
          */
         public function enableThemeUpdates( $update, $item = null ): bool {
-            return $update === null || (bool) $update;
+            return true;
         }
 
         /**
-         * Enable automatic core updates
+         * Enable automatic core updates.
          *
-         * @param mixed $update Whether to update (can be null from WP internals).
-         * @param mixed $type   Update type (optional).
+         * Always returns true. WordPress respects AUTOMATIC_UPDATER_DISABLED and
+         * WP_AUTO_UPDATE_CORE = false before the filter is even called.
+         *
+         * @param mixed $update Whether to update (null = no decision yet, false = opted out).
+         * @param mixed $item   Core update offer object from the updates transient.
          *
          * @return bool
          */
-        public function enableCoreUpdates( $update, $type = '' ): bool {
-            return $update === null || (bool) $update;
+        public function enableCoreUpdates( $update, $item = null ): bool {
+            return true;
+        }
+
+        /**
+         * Log failed items from an automatic update run.
+         *
+         * Hooked to `automatic_updates_complete`. Silent on a clean run;
+         * writes one `[Guardian][AutoUpdate] FAILED` line per failed item.
+         * Each result object contains:
+         *   $result->name   — human-readable package name
+         *   $result->item   — update data (new_version, slug, …)
+         *   $result->result — true on success, WP_Error or false on failure
+         *
+         * @param array $results Keyed by type ('plugin','theme','core','translation').
+         *
+         * @return void
+         */
+        public function logAutoUpdateResults( array $results ): void {
+            $labels = [ 'plugin' => 'Plugin', 'theme' => 'Theme', 'core' => 'Core', 'translation' => 'Translation' ];
+            $failed = [];
+
+            foreach ( $labels as $type => $label ) {
+                if ( empty( $results[ $type ] ) ) {
+                    continue;
+                }
+                foreach ( $results[ $type ] as $result ) {
+                    if ( is_wp_error( $result->result ) || $result->result === false ) {
+                        $version  = isset( $result->item->new_version ) ? ' v' . $result->item->new_version : '';
+                        $failed[] = sprintf( '%s: %s%s', $label, $result->name, $version );
+                    }
+                }
+            }
+
+            foreach ( $failed as $entry ) {
+                prof_guardian_log( '[Guardian][AutoUpdate] FAILED ' . $entry );
+            }
         }
 
         /**

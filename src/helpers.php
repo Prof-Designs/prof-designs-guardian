@@ -20,17 +20,12 @@
                 return;
             }
 
-            // Suppress routine per-request bootstrap noise by default.
+            // Suppress routine operational noise by default.
             $suppressed_patterns = [
-                'Bootstrapping Guardian v',
-                'Registered: ProfDesigns\\Guardian\\Providers\\',
-                'All service providers booted',
-                'Bootstrap complete',
                 'File editors disabled',
                 'Auto-updates enabled',
                 'Error handler initialized',
                 'Health check initialized',
-                '================================',
             ];
 
             foreach ( $suppressed_patterns as $pattern ) {

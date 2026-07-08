@@ -54,7 +54,7 @@ define('PROFDESIGNS_GUARDIAN_AUTO_UPDATES', false);
 **Security Protection Levels:**
 - **File editing** - Always blocked (theme/plugin editors disabled)
 - **Plugin/Theme modifications** - Blocked by default via `PROFDESIGNS_GUARDIAN_LOCK_MODS`
-- **Automatic updates** - Enabled by default via `PROFDESIGNS_GUARDIAN_AUTO_UPDATES` (explicit WordPress/plugin opt-outs are respected)
+- **Automatic updates** - Enabled by default via `PROFDESIGNS_GUARDIAN_AUTO_UPDATES`; runs at filter priority 999 to override any per-plugin/theme opt-outs
 
 **Configuration Scenarios:**
 
