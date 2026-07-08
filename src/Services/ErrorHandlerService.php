@@ -35,13 +35,6 @@
         protected MailerService $mailer;
 
         /**
-         * Previously-registered PHP error handler.
-         *
-         * @var callable|null
-         */
-        protected $previousErrorHandler = null;
-
-        /**
          * ErrorHandlerService constructor
          *
          * @param Application   $app    Application instance
@@ -50,28 +43,6 @@
         public function __construct( Application $app, MailerService $mailer ) {
             $this->app    = $app;
             $this->mailer = $mailer;
-        }
-
-        /**
-         * Store a previously-registered PHP error handler for delegation.
-         *
-         * @param callable|null $handler Previous error handler callback.
-         *
-         * @return void
-         */
-        public function setPreviousErrorHandler( $handler ): void {
-            if ( $handler !== null && ! is_callable( $handler ) ) {
-                return;
-            }
-
-            if ( is_array( $handler )
-                 && isset( $handler[0], $handler[1] )
-                 && $handler[0] === $this
-                 && $handler[1] === 'handleRecoverableError' ) {
-                return;
-            }
-
-            $this->previousErrorHandler = $handler;
         }
 
         /**
@@ -101,99 +72,6 @@
 
             // Send email notification
             $this->sendErrorNotification( $error );
-        }
-
-        /**
-         * Handle recoverable errors
-         *
-         * @param int    $severity Error severity
-         * @param string $message  Error message
-         * @param string $file     File where error occurred
-         * @param int    $line     Line number where error occurred
-         * @param array  $context  Error context (PHP 7.4 compatibility)
-         *
-         * @return bool
-         */
-        public function handleRecoverableError( int $severity, string $message, string $file, int $line, array $context = [] ): bool {
-            $loggable_mask = $this->getRecoverableErrorMask();
-
-            // Log only severities configured for Guardian monitoring.
-            if ( ( $severity & $loggable_mask ) !== 0
-                 && $this->shouldLogRecoverableError( $severity, $message, $file ) ) {
-                prof_guardian_log( "[Guardian] {$this->getErrorType($severity)}: {$message} in {$file}:{$line}" );
-            }
-
-            if ( is_callable( $this->previousErrorHandler ) ) {
-                try {
-                    return (bool) call_user_func( $this->previousErrorHandler, $severity, $message, $file, $line, $context );
-                } catch ( \Throwable $throwable ) {
-                    prof_guardian_log( '[Guardian] Previous error handler delegation failed: '
-                                       . $throwable->getMessage() );
-                }
-            }
-
-            // No previous handler: keep PHP internal handling behavior.
-            return false;
-        }
-
-        /**
-         * Get the recoverable error mask for set_error_handler.
-         *
-         * @return int
-         */
-        public function getRecoverableErrorMask(): int {
-            $mask = E_WARNING | E_USER_WARNING;
-
-            // Deprecated notices are noisy on many production sites; keep opt-in.
-            if ( defined( 'PROFDESIGNS_GUARDIAN_CAPTURE_DEPRECATED' )
-                 && (bool) constant( 'PROFDESIGNS_GUARDIAN_CAPTURE_DEPRECATED' ) ) {
-                $mask |= E_DEPRECATED | E_USER_DEPRECATED;
-            }
-
-            return $mask;
-        }
-
-        /**
-         * Decide whether a recoverable error should be logged by Guardian.
-         *
-         * @param int    $severity Error severity
-         * @param string $message  Error message
-         * @param string $file     File where error occurred
-         *
-         * @return bool
-         */
-        protected function shouldLogRecoverableError( int $severity, string $message, string $file ): bool {
-            // Allow explicit override to keep previous broad logging behavior.
-            if ( defined( 'PROFDESIGNS_GUARDIAN_LOG_THIRD_PARTY_WARNINGS' )
-                 && (bool) constant( 'PROFDESIGNS_GUARDIAN_LOG_THIRD_PARTY_WARNINGS' ) ) {
-                return true;
-            }
-
-            $normalized_file = str_replace( '\\', '/', strtolower( $file ) );
-            $site_root       = str_replace( '\\', '/', strtolower( ABSPATH ) );
-            $guardian_root   = defined( 'PROF_GUARDIAN_PLUGIN_DIR' ) ? (string) constant( 'PROF_GUARDIAN_PLUGIN_DIR' ) : dirname( __DIR__, 2 );
-            $guardian_root   = str_replace( '\\', '/', strtolower( rtrim( $guardian_root, '/\\' ) ) );
-
-            // Always keep Guardian-origin warnings.
-            if ( $guardian_root !== ''
-                 && ( $normalized_file === $guardian_root
-                      || strpos( $normalized_file, $guardian_root . '/' ) === 0 ) ) {
-                return true;
-            }
-
-            // Keep WordPress core warnings (wp-admin/wp-includes) as actionable platform issues.
-            if ( strpos( $normalized_file, '/wp-admin/' ) !== false
-                 || strpos( $normalized_file, '/wp-includes/' ) !== false ) {
-                return true;
-            }
-
-            // Any warning clearly outside site root can still be relevant.
-            if ( $site_root !== '' && strpos( $normalized_file, $site_root ) === false ) {
-                return true;
-            }
-
-            // By default suppress third-party plugin/theme warning storms.
-            return false;
         }
 
         /**

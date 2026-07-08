@@ -1,9 +1,9 @@
 <?php
     /**
      * Plugin Name: Prof Designs Guardian
-     * Plugin URI: https://prof-designs.com/guardian
+     * Plugin URI: https://profdesigns.com/
      * Description: A plugin that provides automatic updates, error handling, and health checks for your website.
-     * Version: 1.0.0
+     * Version: 1.1.1
      *
      * Author: Prof Designs
      * Author URI: https://profdesigns.com
@@ -32,8 +32,7 @@
     }
 
     // Define plugin constants
-    define( 'PROF_GUARDIAN_VERSION', '1.0.0' );
-    define( 'PROF_GUARDIAN_PLUGIN_FILE', __FILE__ );
+    define( 'PROF_GUARDIAN_VERSION', '1.1.1' );
     define( 'PROF_GUARDIAN_PLUGIN_DIR', __DIR__ );
 
     // Load Composer autoloader
@@ -71,10 +70,6 @@
         // Create application instance
         $app = Application::getInstance( __DIR__ );
 
-        prof_guardian_log( '[Guardian] ============================================' );
-        prof_guardian_log( '[Guardian] Bootstrapping Guardian v' . PROF_GUARDIAN_VERSION );
-        prof_guardian_log( '[Guardian] ============================================' );
-
         // Register service providers
         $providers = [
             MailerServiceProvider::class,        // Mailer (no dependencies)
@@ -87,15 +82,10 @@
 
         foreach ( $providers as $provider ) {
             $app->register( $provider );
-            prof_guardian_log( '[Guardian] Registered: ' . $provider );
         }
 
         // Boot all service providers
         $app->boot();
-        prof_guardian_log( '[Guardian] All service providers booted' );
-
-        prof_guardian_log( '[Guardian] Bootstrap complete' );
-        prof_guardian_log( '[Guardian] ============================================' );
 
         return $app;
     }
